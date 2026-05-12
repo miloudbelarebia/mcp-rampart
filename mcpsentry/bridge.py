@@ -117,6 +117,9 @@ class MCPSentry:
         self._routes: list[DiscoveredRoute] = []
         self._tools: list[MCPTool] = []
 
+        # Optional runtime guardrail (configured via enable_guardrails())
+        self._guardrail: Any = None  # mcpsentry.runtime.Guardrail when enabled
+
         # Auto-discover on init
         self._discover_routes()
         self._generate_tools()
@@ -463,6 +466,13 @@ class MCPSentry:
                 "isError": True,
             }
 
+        # Runtime guardrail (when enabled via bridge.enable_guardrails())
+        if self._guardrail is not None:
+            from mcpsentry.runtime import format_blocked_response
+            decision = self._guardrail.check(tool_name, arguments)
+            if not decision.allowed:
+                return format_blocked_response(decision)
+
         route = tool.route
 
         try:
@@ -581,3 +591,51 @@ class MCPSentry:
         """
         from mcpsentry.audit import Auditor
         return Auditor().audit(self)
+
+    def enable_guardrails(
+        self,
+        *,
+        policy: str = "block",
+        detect_injection: bool = True,
+        log_all_calls: bool = True,
+        on_block: Optional[Callable] = None,
+        on_alert: Optional[Callable] = None,
+    ) -> "MCPSentry":
+        """
+        Enable runtime guardrails on every incoming `tools/call`.
+
+        The guardrail inspects each tool call's arguments for
+        prompt-injection patterns, and applies the chosen policy:
+          - "block": refuse the call when injection is detected
+          - "alert": let it through but log loudly (and call on_alert)
+          - "log":   only log (shadow / observability mode)
+
+        Example:
+            bridge = MCPSentry(app)
+            bridge.enable_guardrails(
+                policy="block",
+                on_block=lambda d: send_to_security_team(d),
+            )
+
+        Inspect what happened later:
+            bridge.guardrail.stats()        # → {"total": 42, "blocked": 3, ...}
+            bridge.guardrail.recent(10)     # last 10 calls + decisions
+        """
+        from mcpsentry.runtime import Guardrail
+        self._guardrail = Guardrail(
+            policy=policy,
+            detect_injection=detect_injection,
+            log_all_calls=log_all_calls,
+            on_block=on_block,
+            on_alert=on_alert,
+        )
+        logger.info(
+            "MCPSentry guardrails enabled (policy=%s, detect_injection=%s)",
+            policy, detect_injection,
+        )
+        return self
+
+    @property
+    def guardrail(self):
+        """Access the active Guardrail (or None if not enabled)."""
+        return self._guardrail

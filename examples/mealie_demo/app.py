@@ -376,9 +376,13 @@ if __name__ == "__main__":
         print("\n❌ Audit found CRITICAL issues — refusing to start. Fix the issues above.")
         raise SystemExit(1)
 
+    # Runtime guardrails — scan every tools/call for prompt-injection patterns
+    bridge.enable_guardrails(policy="block")
+
     print("\n🚀 Starting Mealie with MCPSentry...")
-    print("   App:  http://localhost:9925/docs")
-    print("   MCP:  http://localhost:9925/mcp")
+    print("   App:        http://localhost:9925/docs")
+    print("   MCP:        http://localhost:9925/mcp")
+    print("   Guardrails: block-on-injection (every tools/call is scanned)")
     print()
 
     uvicorn.run(app, host="0.0.0.0", port=9925)

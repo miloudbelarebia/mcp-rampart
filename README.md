@@ -1,8 +1,8 @@
 <h1 align="center">🛡️ MCPSentry</h1>
 
 <p align="center">
-  <strong>The MCP bridge that audits your routes before exposing them to LLMs.</strong><br/>
-  <em>One line to expose. One line to verify it's safe.</em>
+  <strong>The MCP bridge that audits your routes before exposing them to LLMs — and blocks prompt-injection at runtime.</strong><br/>
+  <em>One line to expose. One line to verify. One line to guard.</em>
 </p>
 
 <p align="center">
@@ -20,15 +20,17 @@ from mcpsentry import MCPSentry
 app = FastAPI()
 # ... your existing routes ...
 
-bridge = MCPSentry(app)            # Your app now speaks MCP.
-report = bridge.audit()            # Pre-flight security audit.
+bridge = MCPSentry(app)                    # Your app now speaks MCP.
 
+report = bridge.audit()                    # Pre-flight security audit.
 if report.has_blockers():
-    report.print_text()            # 🔴 CRITICAL: /api/admin exposed, /api/auth/login exposed…
+    report.print_text()                    # 🔴 CRITICAL: /api/admin exposed, /api/auth/login exposed…
     raise SystemExit(1)
+
+bridge.enable_guardrails(policy="block")   # Runtime prompt-injection blocking.
 ```
 
-> **MCPSentry** = a one-line FastAPI → MCP bridge **plus** a built-in security auditor. Because handing an LLM root access to your API by accident is no longer hypothetical.
+> **MCPSentry** = a one-line FastAPI → MCP bridge **plus** a pre-flight security auditor **plus** a runtime guardrail that scans every `tools/call` for prompt-injection. Because handing an LLM root access to your API by accident is no longer hypothetical.
 
 ---
 
@@ -246,9 +248,78 @@ Then ask Claude: *"What's for dinner tonight?"* — it'll search your recipes, p
 | Auto-discovers routes (no OpenAPI spec) | ✅ | ✅ | ✅ | ❌ |
 | **Pre-flight security audit** | **✅** | ❌ | ❌ | ❌ |
 | **Refuses to start on CRITICAL findings** | **✅** | ❌ | ❌ | ❌ |
+| **Runtime prompt-injection detection** | **✅** | ❌ | ❌ | ❌ |
+| **Block / alert / log policy on tools/call** | **✅** | ❌ | ❌ | ❌ |
 | Multi-framework (FastAPI + Flask + Django) | 🚧 v0.4 | ❌ | partial (OpenAPI) | spec-based |
 
-If you don't care about auditing what you expose, `fastapi_mcp` and `FastMCP` are fine. If you do, **MCPSentry is the only one that fails your build when you got it wrong.**
+If you don't care about auditing what you expose or what comes back through it, `fastapi_mcp` and `FastMCP` are fine. If you do, **MCPSentry is the only one that fails your build when you got it wrong — and your runtime when something looks off.**
+
+---
+
+## Runtime guardrails (v0.3)
+
+The audit happens once, at startup. **The guardrail runs on every single `tools/call` request** while the server is alive.
+
+It scans the call's `arguments` (recursively, in dicts and lists) against a curated catalogue of prompt-injection patterns:
+
+| Confidence | Examples of what gets caught |
+|---|---|
+| 🔴 HIGH | `ignore previous instructions`, `you are now …`, `developer/admin/jailbreak mode`, chat-template control tokens (`<\|im_start\|>`), `[[system]]` markers |
+| 🟠 MEDIUM | `system prompt`, `act as …`, `pretend to be …`, "reveal your instructions", "repeat everything above" |
+| 🔵 LOW | exfiltration verbs (`send your tokens to …`), `<script>` payloads, embedded `curl/wget https://…`, base64 obfuscation |
+
+Aggregate decision:
+- any HIGH match → **BLOCK**
+- 2+ MEDIUM matches → **BLOCK**
+- 1 MEDIUM or LOW → **WARN**
+- nothing → **ALLOW**
+
+### Enable in one line
+
+```python
+bridge = MCPSentry(app)
+bridge.audit()                         # pre-flight
+bridge.enable_guardrails(policy="block")   # runtime
+```
+
+### Three policies, your call
+
+```python
+bridge.enable_guardrails(policy="block")   # refuse the call (default)
+bridge.enable_guardrails(policy="alert")   # let it through, log loudly + on_alert callback
+bridge.enable_guardrails(policy="log")     # shadow mode — just observe
+```
+
+### Plug your alerting in
+
+```python
+def to_security_team(decision):
+    slack.post(f"⚠️ MCPSentry blocked {decision.tool_name}: {decision.reason}")
+
+bridge.enable_guardrails(policy="block", on_block=to_security_team)
+```
+
+### Inspect what happened
+
+```python
+bridge.guardrail.stats()
+# → {"total": 1284, "blocked": 7, "alerted": 23, "clean": 1254}
+
+for entry in bridge.guardrail.recent(10):
+    print(entry.tool_name, entry.decision.allowed, entry.decision.reason)
+```
+
+What an MCP client sees when blocked:
+
+```json
+{
+  "isError": true,
+  "content": [{
+    "type": "text",
+    "text": "🛡️ Blocked by MCPSentry runtime guardrail.\nReason: Prompt-injection detected (HIGH:1 MEDIUM:0 LOW:0)\nTop matches: high instruction_override @ arguments.query"
+  }]
+}
+```
 
 ---
 
@@ -256,9 +327,9 @@ If you don't care about auditing what you expose, `fastapi_mcp` and `FastMCP` ar
 
 - [x] **v0.1** — FastAPI introspection, MCP Streamable HTTP transport, examples
 - [x] **v0.2** — `bridge.audit()` with 7 security checks, severity levels, JSON/text output
-- [ ] **v0.3** — Runtime guardrails (log + block suspicious `tools/call`, prompt-injection detection via [wiqai](https://github.com/wiqai/wiqai))
+- [x] **v0.3** — Runtime guardrails: prompt-injection detection + block/alert/log policy + structured callbacks
 - [ ] **v0.4** — Multi-framework: Flask + Django adapters (the real white space)
-- [ ] **v0.5** — Custom audit rules (decorators / config / plugins)
+- [ ] **v0.5** — Custom audit & guardrail rules (decorators / config / plugins)
 - [ ] **v0.6** — OAuth2 / API key auth passthrough, stdio transport
 - [ ] **v1.0** — Smart tool grouping (collapse CRUD into fewer tools), policy-as-code
 

@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcpsentry"
-version = "0.2.0"
-description = "The MCP bridge that audits your routes before exposing them to LLMs"
+version = "0.3.0"
+description = "The MCP bridge that audits your routes before exposing them to LLMs — and blocks prompt-injection at runtime."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     {name = "Miloud Belarebia", email = "contact@miloudbelarebia.com"},
 ]
-keywords = ["mcp", "model-context-protocol", "fastapi", "llm", "ai", "claude", "chatgpt", "gemini", "security", "audit", "agent-safety"]
+keywords = ["mcp", "model-context-protocol", "fastapi", "llm", "ai", "claude", "chatgpt", "gemini", "security", "audit", "agent-safety", "prompt-injection", "runtime-guardrails"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
