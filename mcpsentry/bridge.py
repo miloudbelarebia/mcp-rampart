@@ -378,16 +378,15 @@ class MCPSentry:
 
     def _mount_mcp_endpoint(self) -> None:
         """Mount MCP protocol endpoints on the FastAPI app."""
-        from fastapi import Request
+        from fastapi import Body
         from fastapi.responses import JSONResponse
 
         bridge = self
 
         @self.app.post(self.mcp_endpoint)
-        async def mcp_handler(request: Request):
+        async def mcp_handler(payload: dict = Body(...)):  # noqa: B008
             """MCP JSON-RPC endpoint (Streamable HTTP transport)."""
-            body = await request.json()
-            response = await bridge._handle_jsonrpc(body)
+            response = await bridge._handle_jsonrpc(payload)
             return JSONResponse(content=response)
 
         @self.app.get(self.mcp_endpoint)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcpsentry"
-version = "0.3.0"
+version = "0.3.1"
 description = "The MCP bridge that audits your routes before exposing them to LLMs — and blocks prompt-injection at runtime."
 readme = "README.md"
 license = "MIT"
