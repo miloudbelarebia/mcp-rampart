@@ -2,14 +2,18 @@
 Mealie-like Recipe Manager — Demo Application
 
 This simulates the core Mealie FastAPI structure to demonstrate
-how MCP Bridge turns ANY FastAPI app into an MCP server.
+how MCPSentry turns ANY FastAPI app into an MCP server — with a
+pre-flight security audit and runtime prompt-injection guardrails.
 
-─── WITHOUT MCP Bridge ───
+─── WITHOUT MCPSentry ───
 You'd need to install a separate MCP server (mealie-mcp-server),
-configure it, deploy it alongside your app, and keep them in sync.
+configure it, deploy it alongside your app, keep them in sync,
+AND hope nobody exposes /admin or /auth by mistake.
 
-─── WITH MCP Bridge (3 lines) ───
-Just add MCPBridge(app) and your app IS the MCP server.
+─── WITH MCPSentry (3 lines) ───
+    bridge = MCPSentry(app)
+    bridge.audit()                         # pre-flight
+    bridge.enable_guardrails(policy='block')   # runtime
 """
 
 from __future__ import annotations
