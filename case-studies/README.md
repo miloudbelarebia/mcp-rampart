@@ -1,6 +1,6 @@
 # MCPRampart Case Studies — Real Public FastAPI Projects
 
-This directory contains audit results from running `bridge.audit()` on real public FastAPI projects on GitHub.
+This directory contains audit results from running `rampart.audit()` on real public FastAPI projects on GitHub.
 
 The goal: prove that MCPRampart catches concrete security issues in code that thousands of developers already use, not hypothetical ones.
 
@@ -20,7 +20,7 @@ The goal: prove that MCPRampart catches concrete security issues in code that th
 >
 > An MCP client like Claude Desktop, if configured against this server, would see those endpoints listed as callable tools.
 >
-> MCPRampart catches all three in `bridge.audit()` and `has_blockers()` returns `True`, preventing the server from starting.
+> MCPRampart catches all three in `rampart.audit()` and `has_blockers()` returns `True`, preventing the server from starting.
 
 This is exactly the failure mode MCPRampart was built to prevent: **a developer ships an "MCP-enabled" version of their app without realising authentication endpoints became LLM tools in the process**.
 
@@ -32,8 +32,8 @@ Each project was:
 3. Audited with:
    ```python
    from mcp_rampart import MCPRampart
-   bridge = MCPRampart(their_app, include_paths=['/*'])  # expose everything
-   report = bridge.audit()
+   rampart = MCPRampart(their_app, include_paths=['/*'])  # expose everything
+   report = rampart.audit()
    report.print_text()
    ```
 

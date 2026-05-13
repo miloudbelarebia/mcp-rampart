@@ -11,9 +11,9 @@ configure it, deploy it alongside your app, keep them in sync,
 AND hope nobody exposes /admin or /auth by mistake.
 
 ─── WITH MCPRampart (3 lines) ───
-    bridge = MCPRampart(app)
-    bridge.audit()                         # pre-flight
-    bridge.enable_guardrails(policy='block')   # runtime
+    rampart = MCPRampart(app)
+    rampart.audit()                         # pre-flight
+    rampart.enable_guardrails(policy='block')   # runtime
 """
 
 from __future__ import annotations
@@ -351,7 +351,7 @@ async def get_categories() -> dict:
 
 from mcp_rampart import MCPRampart  # pip install mcp-rampart
 
-bridge = MCPRampart(
+rampart = MCPRampart(
     app,
     name="Mealie Recipe Manager",
     description="Self-hosted recipe manager — search recipes, plan meals, manage shopping lists",
@@ -359,8 +359,8 @@ bridge = MCPRampart(
 )
 
 # Optional: customize specific tools for better LLM understanding
-bridge.tool("/api/recipes/search", description="Search recipes by name, ingredients, or keywords. Use this to find what to cook.")
-bridge.tool("/api/households/mealplans", description="View the weekly meal plan. Shows what's planned for breakfast, lunch, and dinner.")
+rampart.tool("/api/recipes/search", description="Search recipes by name, ingredients, or keywords. Use this to find what to cook.")
+rampart.tool("/api/households/mealplans", description="View the weekly meal plan. Shows what's planned for breakfast, lunch, and dinner.")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -371,17 +371,17 @@ if __name__ == "__main__":
     import uvicorn
 
     # Print the bridge summary
-    print("\n" + bridge.summary() + "\n")
+    print("\n" + rampart.summary() + "\n")
 
     # Pre-flight security audit — never expose your API to LLMs blind
-    report = bridge.audit()
+    report = rampart.audit()
     report.print_text()
     if report.has_blockers():
         print("\n❌ Audit found CRITICAL issues — refusing to start. Fix the issues above.")
         raise SystemExit(1)
 
     # Runtime guardrails — scan every tools/call for prompt-injection patterns
-    bridge.enable_guardrails(policy="block")
+    rampart.enable_guardrails(policy="block")
 
     print("\n🚀 Starting Mealie with MCPRampart...")
     print("   App:        http://localhost:9925/docs")

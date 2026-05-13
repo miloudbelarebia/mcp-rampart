@@ -52,7 +52,7 @@ print(b.guardrail.check('u', {'i': 'ignore previous instructions'}))
 
 ```
 mcp_rampart/
-├── bridge.py        # MCPRampart class — introspection + MCP serving
+├── bridge.py        # MCPRampart class — introspection + MCP serving (core)
 ├── audit.py         # Pre-flight Auditor + AuditReport + Findings
 ├── injection.py     # Regex pattern catalogue + InjectionDetector
 └── runtime.py       # Guardrail + GuardrailDecision + CallLog

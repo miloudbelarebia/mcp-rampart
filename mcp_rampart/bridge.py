@@ -71,16 +71,16 @@ class MCPRampart:
 
     Usage:
         app = FastAPI()
-        bridge = MCPRampart(app)
+        rampart = MCPRampart(app)
 
         # Run security audit before deploying
-        report = bridge.audit()
+        report = rampart.audit()
         if report.has_blockers():
             report.print_text()
             raise SystemExit(1)
 
     Advanced:
-        bridge = MCPRampart(
+        rampart = MCPRampart(
             app,
             name="My App",
             include_paths=["/api/*"],
@@ -381,27 +381,27 @@ class MCPRampart:
         from fastapi import Body
         from fastapi.responses import JSONResponse
 
-        bridge = self
+        rampart = self
 
         @self.app.post(self.mcp_endpoint)
         async def mcp_handler(payload: dict = Body(...)):  # noqa: B008
             """MCP JSON-RPC endpoint (Streamable HTTP transport)."""
-            response = await bridge._handle_jsonrpc(payload)
+            response = await rampart._handle_jsonrpc(payload)
             return JSONResponse(content=response)
 
         @self.app.get(self.mcp_endpoint)
         async def mcp_info():
             """MCP server info endpoint."""
             return {
-                "name": bridge.name,
-                "version": bridge.version,
-                "description": bridge.description,
+                "name": rampart.name,
+                "version": rampart.version,
+                "description": rampart.description,
                 "protocol": "MCP",
                 "transport": "streamable-http",
-                "tools_count": len(bridge._tools),
+                "tools_count": len(rampart._tools),
                 "tools": [
                     {"name": t.name, "description": t.description}
-                    for t in bridge._tools
+                    for t in rampart._tools
                 ],
             }
 
@@ -465,7 +465,7 @@ class MCPRampart:
                 "isError": True,
             }
 
-        # Runtime guardrail (when enabled via bridge.enable_guardrails())
+        # Runtime guardrail (when enabled via rampart.enable_guardrails())
         if self._guardrail is not None:
             from mcp_rampart.runtime import format_blocked_response
             decision = self._guardrail.check(tool_name, arguments)
@@ -582,8 +582,8 @@ class MCPRampart:
             AuditReport with severity-tagged findings.
 
         Example:
-            bridge = MCPRampart(app)
-            report = bridge.audit()
+            rampart = MCPRampart(app)
+            report = rampart.audit()
             if report.has_blockers():
                 report.print_text()
                 raise SystemExit(1)
@@ -610,15 +610,15 @@ class MCPRampart:
           - "log":   only log (shadow / observability mode)
 
         Example:
-            bridge = MCPRampart(app)
-            bridge.enable_guardrails(
+            rampart = MCPRampart(app)
+            rampart.enable_guardrails(
                 policy="block",
                 on_block=lambda d: send_to_security_team(d),
             )
 
         Inspect what happened later:
-            bridge.guardrail.stats()        # → {"total": 42, "blocked": 3, ...}
-            bridge.guardrail.recent(10)     # last 10 calls + decisions
+            rampart.guardrail.stats()        # → {"total": 42, "blocked": 3, ...}
+            rampart.guardrail.recent(10)     # last 10 calls + decisions
         """
         from mcp_rampart.runtime import Guardrail
         self._guardrail = Guardrail(

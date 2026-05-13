@@ -20,12 +20,12 @@ from mcp_rampart import MCPRampart
 app = FastAPI()
 # ... your existing routes ...
 
-bridge = MCPRampart(app)                    # 1. Speak MCP.
-report = bridge.audit()                    # 2. Audit what you'd expose.
+rampart = MCPRampart(app)                    # 1. Speak MCP.
+report = rampart.audit()                    # 2. Audit what you'd expose.
 if report.has_blockers():
     report.print_text(); raise SystemExit(1)
 
-bridge.enable_guardrails(policy="block")   # 3. Block prompt-injection at runtime.
+rampart.enable_guardrails(policy="block")   # 3. Block prompt-injection at runtime.
 ```
 
 ---
@@ -70,17 +70,17 @@ async def get_user(user_id: int):
     """Get a user by their ID."""
     return {"id": user_id, "name": "Alice"}
 
-bridge = MCPRampart(app)                    # auto-discovers routes, mounts /mcp
-print(bridge.summary())
+rampart = MCPRampart(app)                    # auto-discovers routes, mounts /mcp
+print(rampart.summary())
 
 # Pre-flight audit — refuses to start the server on CRITICAL findings
-report = bridge.audit()
+report = rampart.audit()
 report.print_text()
 if report.has_blockers():
     raise SystemExit(1)
 
 # Runtime guardrail — every incoming tools/call is scanned
-bridge.enable_guardrails(policy="block")
+rampart.enable_guardrails(policy="block")
 ```
 
 Your app now exposes:
@@ -93,7 +93,7 @@ Any MCP client (Claude Desktop, ChatGPT, Gemini, Cursor, Codex) can connect.
 
 ## The pre-flight audit, in detail
 
-`bridge.audit()` walks every exposed tool and runs **7 checks**. Each finding gets a severity tag, a suggestion, and a category code you can match in CI.
+`rampart.audit()` walks every exposed tool and runs **7 checks**. Each finding gets a severity tag, a suggestion, and a category code you can match in CI.
 
 | Severity | Check | Triggers when… |
 |---|---|---|
@@ -123,7 +123,7 @@ Sample output on a deliberately bad app:
 Use it in CI:
 
 ```yaml
-- run: python -c "from myapp import bridge; r = bridge.audit(); r.print_text(); exit(1 if r.has_blockers() else 0)"
+- run: python -c "from myapp import rampart; r = rampart.audit(); r.print_text(); exit(1 if r.has_blockers() else 0)"
 ```
 
 ---
@@ -149,9 +149,9 @@ Aggregate decision:
 ### Enable in one line
 
 ```python
-bridge.enable_guardrails(policy="block")     # default
-bridge.enable_guardrails(policy="alert")     # let through, log loudly, call on_alert
-bridge.enable_guardrails(policy="log")       # observability / shadow mode
+rampart.enable_guardrails(policy="block")     # default
+rampart.enable_guardrails(policy="alert")     # let through, log loudly, call on_alert
+rampart.enable_guardrails(policy="log")       # observability / shadow mode
 ```
 
 ### Plug your alerting in
@@ -160,16 +160,16 @@ bridge.enable_guardrails(policy="log")       # observability / shadow mode
 def to_security_team(decision):
     slack.post(f"⚠️ MCPRampart blocked {decision.tool_name}: {decision.reason}")
 
-bridge.enable_guardrails(policy="block", on_block=to_security_team)
+rampart.enable_guardrails(policy="block", on_block=to_security_team)
 ```
 
 ### Inspect what happened
 
 ```python
-bridge.guardrail.stats()
+rampart.guardrail.stats()
 # → {"total": 1284, "blocked": 7, "alerted": 23, "clean": 1254}
 
-for entry in bridge.guardrail.recent(10):
+for entry in rampart.guardrail.recent(10):
     print(entry.tool_name, entry.decision.allowed, entry.decision.reason)
 ```
 
@@ -189,7 +189,7 @@ What an MCP client sees when blocked:
 
 ## 🎯 Real-world findings — see [`case-studies/`](case-studies/)
 
-We ran `bridge.audit()` against the official examples of [`tadata-org/fastapi_mcp`](https://github.com/tadata-org/fastapi_mcp) (the most popular FastAPI→MCP library, 11.9k ⭐):
+We ran `rampart.audit()` against the official examples of [`tadata-org/fastapi_mcp`](https://github.com/tadata-org/fastapi_mcp) (the most popular FastAPI→MCP library, 11.9k ⭐):
 
 | Example | 🔴 Crit | 🟠 High | 🟡 Med | 🔵 Low | Verdict |
 |---|--:|--:|--:|--:|---|
@@ -268,7 +268,7 @@ If you're building an MCP server (not consuming someone else's), this is the lay
 ## Roadmap
 
 - [x] **v0.1** — FastAPI introspection, MCP Streamable HTTP transport, examples
-- [x] **v0.2** — `bridge.audit()` with 7 security checks, severity levels, JSON/text output
+- [x] **v0.2** — `rampart.audit()` with 7 security checks, severity levels, JSON/text output
 - [x] **v0.3** — Runtime guardrails: prompt-injection detection + block/alert/log policy + structured callbacks
 - [ ] **v0.4** — Multi-framework: Flask + Django adapters (the real white space)
 - [ ] **v0.5** — Custom audit & guardrail rules (decorators / config / plugins) + tunable confidence thresholds

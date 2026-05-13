@@ -95,7 +95,7 @@ None of this is necessarily exploitable on its own — but **none of it should b
 
 MCPRampart's default behaviour:
 ```python
-report = bridge.audit()
+report = rampart.audit()
 if report.has_blockers():
     report.print_text()
     raise SystemExit(1)   # ← server refuses to start
@@ -118,4 +118,4 @@ Neither of these happens automatically with `fastapi_mcp`. There is no built-in 
 | Detects untyped params | ❌ | depends on reviewer | ✅ |
 | Detects missing docstrings | ❌ | depends on reviewer | ✅ |
 | Fails CI on critical | ❌ | manual | ✅ `has_blockers()` |
-| Time to write | 0 | hours per project | 1 line: `bridge.audit()` |
+| Time to write | 0 | hours per project | 1 line: `rampart.audit()` |

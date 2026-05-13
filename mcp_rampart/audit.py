@@ -11,8 +11,8 @@ BEFORE your API meets a language model:
   - Missing docstrings (LLMs will guess and choose the wrong tool)
 
 Usage:
-    bridge = MCPRampart(app)
-    report = bridge.audit()
+    rampart = MCPRampart(app)
+    report = rampart.audit()
     if report.has_blockers():
         report.print_text()
         raise SystemExit(1)
@@ -94,7 +94,7 @@ class Finding:
 
 @dataclass
 class AuditReport:
-    """Aggregated audit result for an MCPRampart bridge."""
+    """Aggregated audit result for an MCPRampart."""
     findings: list[Finding] = field(default_factory=list)
     total_routes: int = 0
     exposed_tools: int = 0
@@ -196,13 +196,13 @@ class Auditor:
 
     DESTRUCTIVE_METHODS = {"DELETE", "PUT", "PATCH"}
 
-    def audit(self, bridge: MCPRampart) -> AuditReport:
-        """Run a full pre-flight security audit of the bridge."""
+    def audit(self, rampart: MCPRampart) -> AuditReport:
+        """Run a full pre-flight security audit of the rampart."""
         report = AuditReport(
-            total_routes=len(bridge.routes),
-            exposed_tools=len(bridge.tools),
+            total_routes=len(rampart.routes),
+            exposed_tools=len(rampart.tools),
         )
-        for tool in bridge.tools:
+        for tool in rampart.tools:
             report.findings.extend(self._audit_route(tool.route))
         return report
 

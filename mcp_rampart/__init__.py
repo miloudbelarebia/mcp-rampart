@@ -12,16 +12,16 @@ Quick start:
     from mcp_rampart import MCPRampart
 
     app = FastAPI()
-    bridge = MCPRampart(app)
+    rampart = MCPRampart(app)
 
     # Pre-flight security audit
-    report = bridge.audit()
+    report = rampart.audit()
     if report.has_blockers():
         report.print_text()
         raise SystemExit(1)
 
     # Runtime guardrails on every incoming tools/call
-    bridge.enable_guardrails(policy="block")
+    rampart.enable_guardrails(policy="block")
 """
 
 from mcp_rampart.audit import (
@@ -46,7 +46,7 @@ from mcp_rampart.runtime import (
     Policy,
 )
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __all__ = [
     # Bridge
     "MCPRampart",

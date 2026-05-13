@@ -12,10 +12,10 @@ you a single hook to:
 
 Wire it up once:
 
-    bridge = MCPRampart(app)
-    bridge.enable_guardrails(policy="block")
+    rampart = MCPRampart(app)
+    rampart.enable_guardrails(policy="block")
 
-…and the bridge's tools/call handler will route every incoming request
+…and the rampart's tools/call handler will route every incoming request
 through a Guardrail before executing the route.
 """
 
