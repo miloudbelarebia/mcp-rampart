@@ -1,5 +1,5 @@
 """
-MCPSentry - Security Audit Module
+MCPRampart - Security Audit Module
 
 Pre-flight scanner for routes exposed via MCP. Catches dangerous patterns
 BEFORE your API meets a language model:
@@ -11,7 +11,7 @@ BEFORE your API meets a language model:
   - Missing docstrings (LLMs will guess and choose the wrong tool)
 
 Usage:
-    bridge = MCPSentry(app)
+    bridge = MCPRampart(app)
     report = bridge.audit()
     if report.has_blockers():
         report.print_text()
@@ -26,7 +26,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from mcpsentry.bridge import DiscoveredRoute, MCPSentry
+    from mcp_rampart.bridge import DiscoveredRoute, MCPRampart
 
 
 # ── Taxonomy ────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ class Finding:
 
 @dataclass
 class AuditReport:
-    """Aggregated audit result for an MCPSentry bridge."""
+    """Aggregated audit result for an MCPRampart bridge."""
     findings: list[Finding] = field(default_factory=list)
     total_routes: int = 0
     exposed_tools: int = 0
@@ -124,12 +124,12 @@ class AuditReport:
     def format_text(self) -> str:
         if not self.findings:
             return (
-                f"🛡️  MCPSentry audit: clean\n"
+                f"🛡️  MCPRampart audit: clean\n"
                 f"   {self.exposed_tools} tools from {self.total_routes} routes — no issues found.\n"
             )
 
         lines = [
-            "🛡️  MCPSentry audit report",
+            "🛡️  MCPRampart audit report",
             f"   {self.exposed_tools} tools from {self.total_routes} routes",
             f"   🔴 {self.critical_count} critical · 🟠 {self.high_count} high · "
             f"🟡 {self.medium_count} medium · 🔵 {self.low_count} low",
@@ -166,7 +166,7 @@ class AuditReport:
 
 
 class Auditor:
-    """Scans MCPSentry routes for security risks before LLM exposure."""
+    """Scans MCPRampart routes for security risks before LLM exposure."""
 
     # Path heuristics
     AUTH_PATH_PATTERNS = [
@@ -196,7 +196,7 @@ class Auditor:
 
     DESTRUCTIVE_METHODS = {"DELETE", "PUT", "PATCH"}
 
-    def audit(self, bridge: MCPSentry) -> AuditReport:
+    def audit(self, bridge: MCPRampart) -> AuditReport:
         """Run a full pre-flight security audit of the bridge."""
         report = AuditReport(
             total_routes=len(bridge.routes),

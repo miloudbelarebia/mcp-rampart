@@ -1,4 +1,4 @@
-<h1 align="center">🛡️ MCPSentry</h1>
+<h1 align="center">🛡️ MCPRampart</h1>
 
 <p align="center">
   <strong>Security for the FastAPI apps you expose to LLMs via MCP.</strong><br/>
@@ -6,21 +6,21 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/mcpsentry/"><img src="https://img.shields.io/pypi/v/mcpsentry?color=blue&label=PyPI" alt="PyPI"></a>
-  <a href="https://github.com/miloudbelarebia/mcpsentry/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
-  <a href="https://github.com/miloudbelarebia/mcpsentry/stargazers"><img src="https://img.shields.io/github/stars/miloudbelarebia/mcpsentry?style=social" alt="Stars"></a>
+  <a href="https://pypi.org/project/mcp_rampart/"><img src="https://img.shields.io/pypi/v/mcp-rampart?color=blue&label=PyPI" alt="PyPI"></a>
+  <a href="https://github.com/miloudbelarebia/mcp-rampart/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/miloudbelarebia/mcp-rampart/stargazers"><img src="https://img.shields.io/github/stars/miloudbelarebia/mcp-rampart?style=social" alt="Stars"></a>
 </p>
 
 ---
 
 ```python
 from fastapi import FastAPI
-from mcpsentry import MCPSentry
+from mcp_rampart import MCPRampart
 
 app = FastAPI()
 # ... your existing routes ...
 
-bridge = MCPSentry(app)                    # 1. Speak MCP.
+bridge = MCPRampart(app)                    # 1. Speak MCP.
 report = bridge.audit()                    # 2. Audit what you'd expose.
 if report.has_blockers():
     report.print_text(); raise SystemExit(1)
@@ -44,24 +44,24 @@ Every FastAPI app shipped as an MCP server is one careless `include_paths=["/*"]
 
 And once it's live, **every single `tools/call` request is untrusted input** — written by a model that may have been told to "ignore previous instructions" two turns ago.
 
-MCPSentry is two things in one package, designed to make those two failure modes hard to ignore:
+MCPRampart is two things in one package, designed to make those two failure modes hard to ignore:
 
 1. **A pre-flight `audit()`** that walks every route you'd expose and refuses to start the server when something looks dangerous.
 2. **A runtime `Guardrail`** that scans the arguments of every `tools/call` against a curated prompt-injection pattern catalogue and blocks the call before your handler runs.
 
-You don't have to integrate three libraries, write your own regex layer, or stand up a separate proxy. It's `pip install mcpsentry` and three lines of code.
+You don't have to integrate three libraries, write your own regex layer, or stand up a separate proxy. It's `pip install mcp-rampart` and three lines of code.
 
 ---
 
 ## Quick start
 
 ```bash
-pip install mcpsentry
+pip install mcp-rampart
 ```
 
 ```python
 from fastapi import FastAPI
-from mcpsentry import MCPSentry
+from mcp_rampart import MCPRampart
 
 app = FastAPI(title="My App")
 
@@ -70,7 +70,7 @@ async def get_user(user_id: int):
     """Get a user by their ID."""
     return {"id": user_id, "name": "Alice"}
 
-bridge = MCPSentry(app)                    # auto-discovers routes, mounts /mcp
+bridge = MCPRampart(app)                    # auto-discovers routes, mounts /mcp
 print(bridge.summary())
 
 # Pre-flight audit — refuses to start the server on CRITICAL findings
@@ -108,7 +108,7 @@ Any MCP client (Claude Desktop, ChatGPT, Gemini, Cursor, Codex) can connect.
 Sample output on a deliberately bad app:
 
 ```
-🛡️  MCPSentry audit report
+🛡️  MCPRampart audit report
    13 tools from 13 routes
    🔴 2 critical · 🟠 4 high · 🟡 3 medium · 🔵 1 low
 
@@ -158,7 +158,7 @@ bridge.enable_guardrails(policy="log")       # observability / shadow mode
 
 ```python
 def to_security_team(decision):
-    slack.post(f"⚠️ MCPSentry blocked {decision.tool_name}: {decision.reason}")
+    slack.post(f"⚠️ MCPRampart blocked {decision.tool_name}: {decision.reason}")
 
 bridge.enable_guardrails(policy="block", on_block=to_security_team)
 ```
@@ -180,7 +180,7 @@ What an MCP client sees when blocked:
   "isError": true,
   "content": [{
     "type": "text",
-    "text": "🛡️ Blocked by MCPSentry runtime guardrail.\nReason: Prompt-injection detected (HIGH:1)\nTop matches: high instruction_override @ arguments.query"
+    "text": "🛡️ Blocked by MCPRampart runtime guardrail.\nReason: Prompt-injection detected (HIGH:1)\nTop matches: high instruction_override @ arguments.query"
   }]
 }
 ```
@@ -199,26 +199,26 @@ We ran `bridge.audit()` against the official examples of [`tadata-org/fastapi_mc
 | `08_auth_token_passthrough` | 0 | 1 | 2 | 0 | ✅ |
 | **`09_auth_example_auth0`** | **3** | **6** | **0** | **1** | **❌ BLOCK** |
 
-**Headline**: the official Auth0 example **exposes `/oauth/authorize`, `/oauth/register`, and `/.well-known/oauth-authorization-server` to LLM clients**. MCPSentry catches all three and refuses to start the server. Full breakdown in [`case-studies/01-fastapi-mcp-examples.md`](case-studies/01-fastapi-mcp-examples.md).
+**Headline**: the official Auth0 example **exposes `/oauth/authorize`, `/oauth/register`, and `/.well-known/oauth-authorization-server` to LLM clients**. MCPRampart catches all three and refuses to start the server. Full breakdown in [`case-studies/01-fastapi-mcp-examples.md`](case-studies/01-fastapi-mcp-examples.md).
 
 ---
 
-## Where MCPSentry sits in the MCP-security landscape
+## Where MCPRampart sits in the MCP-security landscape
 
 MCP security tools have started shipping. Here's an honest map:
 
 | Project | ⭐ | Shape | What it does |
 |---|--:|---|---|
-| **`mcpsentry` (this)** | new | **Embedded library** (`pip install` into your FastAPI app) | **Pre-flight audit of your own routes + runtime injection guardrail on every `tools/call`** |
+| **`mcp_rampart` (this)** | new | **Embedded library** (`pip install` into your FastAPI app) | **Pre-flight audit of your own routes + runtime injection guardrail on every `tools/call`** |
 | [`luckyPipewrench/pipelock`](https://github.com/luckyPipewrench/pipelock) | 583 | Client-side firewall | Agent egress control, DLP, sits between agent and MCP server |
 | [`apache/casbin-gateway`](https://github.com/apache/casbin-gateway) | 559 | HTTP gateway | Casbin policy enforcement in front of MCP traffic |
 | [`apisec-inc/mcp-audit`](https://github.com/apisec-inc/mcp-audit) | 149 | Config scanner | Scans `mcp.json` for exposed secrets / unsafe servers installed on your machine |
 | [`hyprmcp/mcp-gateway`](https://github.com/hyprmcp/mcp-gateway) | 92 | OAuth proxy | DCR + analytics in front of MCP servers |
 | [`ModelContextProtocol-Security/mcpserver-audit`](https://github.com/ModelContextProtocol-Security/mcpserver-audit) | 16 | CLI | Audit MCP servers *before* you install them |
 
-**Where MCPSentry is the only one ✅**
+**Where MCPRampart is the only one ✅**
 
-| | mcpsentry | pipelock | casbin-gateway | apisec mcp-audit | hyprmcp |
+| | mcp_rampart | pipelock | casbin-gateway | apisec mcp-audit | hyprmcp |
 |---|:--:|:--:|:--:|:--:|:--:|
 | Runs **inside your FastAPI app** (no extra process) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Audits the **routes _you_ are about to expose** (not someone else's) | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -227,7 +227,7 @@ MCP security tools have started shipping. Here's an honest map:
 | Pluggable `on_block` / `on_alert` callbacks | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Three-policy model (`block` / `alert` / `log`) | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-The gateway / firewall / config-scanner projects each solve a real problem **for the agent operator or the MCP user**. MCPSentry solves the dual problem **for the MCP server author**: did you accidentally expose something dangerous, and if so, are you willing to ship anyway?
+The gateway / firewall / config-scanner projects each solve a real problem **for the agent operator or the MCP user**. MCPRampart solves the dual problem **for the MCP server author**: did you accidentally expose something dangerous, and if so, are you willing to ship anyway?
 
 If you're building an MCP server (not consuming someone else's), this is the layer you don't currently have.
 
@@ -244,7 +244,7 @@ If you're building an MCP server (not consuming someone else's), this is the lay
 │   @app.delete("/api/admin/...")  ← BAD              │
 │                                                     │
 │   ┌─────────────────────────────────────────────┐   │
-│   │            MCPSentry (embedded)              │   │
+│   │            MCPRampart (embedded)              │   │
 │   │                                             │   │
 │   │  1. Introspect routes at startup            │   │
 │   │  2. Extract Pydantic schemas + type hints   │   │
@@ -280,8 +280,8 @@ If you're building an MCP server (not consuming someone else's), this is the lay
 ## Contributing
 
 ```bash
-git clone https://github.com/miloudbelarebia/mcpsentry
-cd mcpsentry
+git clone https://github.com/miloudbelarebia/mcp-rampart
+cd mcp-rampart
 pip install -e ".[dev]"
 pytest
 ```

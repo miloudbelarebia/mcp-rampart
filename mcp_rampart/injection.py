@@ -1,5 +1,5 @@
 """
-MCPSentry - Prompt-Injection Detector
+MCPRampart - Prompt-Injection Detector
 
 Pattern-based detector for prompt-injection attempts hidden inside the
 arguments of an MCP `tools/call` request.
@@ -10,7 +10,7 @@ an `InjectionResult` with the score, matched patterns, and a recommended
 action (block / warn / allow).
 
 This is *defence in depth*, not a silver bullet. Combine with:
-- MCPSentry.audit() — pre-flight surface review
+- MCPRampart.audit() — pre-flight surface review
 - Your existing auth / rate-limit / WAF
 - Application-level argument validation
 """

@@ -1,5 +1,5 @@
 """
-MCPSentry - Core Bridge Module
+MCPRampart - Core Bridge Module
 
 Introspects a FastAPI application and exposes its routes as MCP tools,
 with a pre-flight security audit (see `audit.py`) to catch dangerous
@@ -21,7 +21,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel
 from starlette.routing import Route
 
-logger = logging.getLogger("mcpsentry")
+logger = logging.getLogger("mcp_rampart")
 
 
 class ToolCategory(str, Enum):
@@ -59,7 +59,7 @@ class MCPTool:
     route: DiscoveredRoute
 
 
-class MCPSentry:
+class MCPRampart:
     """
     Security-aware MCP connector for FastAPI applications.
 
@@ -71,7 +71,7 @@ class MCPSentry:
 
     Usage:
         app = FastAPI()
-        bridge = MCPSentry(app)
+        bridge = MCPRampart(app)
 
         # Run security audit before deploying
         report = bridge.audit()
@@ -80,7 +80,7 @@ class MCPSentry:
             raise SystemExit(1)
 
     Advanced:
-        bridge = MCPSentry(
+        bridge = MCPRampart(
             app,
             name="My App",
             include_paths=["/api/*"],
@@ -102,7 +102,7 @@ class MCPSentry:
         mcp_endpoint: str = "/mcp",
     ):
         self.app = app
-        self.name = name or app.title or "MCPSentry Server"
+        self.name = name or app.title or "MCPRampart Server"
         self.version = version or getattr(app, "version", "1.0.0")
         self.description = description or app.description or f"MCP server for {self.name}"
         self.include_paths = include_paths or ["/api/*"]
@@ -118,7 +118,7 @@ class MCPSentry:
         self._tools: list[MCPTool] = []
 
         # Optional runtime guardrail (configured via enable_guardrails())
-        self._guardrail: Any = None  # mcpsentry.runtime.Guardrail when enabled
+        self._guardrail: Any = None  # mcp_rampart.runtime.Guardrail when enabled
 
         # Auto-discover on init
         self._discover_routes()
@@ -126,7 +126,7 @@ class MCPSentry:
         self._mount_mcp_endpoint()
 
         logger.info(
-            f"MCPSentry initialized: {len(self._tools)} tools "
+            f"MCPRampart initialized: {len(self._tools)} tools "
             f"discovered from {len(self._routes)} routes"
         )
 
@@ -467,7 +467,7 @@ class MCPSentry:
 
         # Runtime guardrail (when enabled via bridge.enable_guardrails())
         if self._guardrail is not None:
-            from mcpsentry.runtime import format_blocked_response
+            from mcp_rampart.runtime import format_blocked_response
             decision = self._guardrail.check(tool_name, arguments)
             if not decision.allowed:
                 return format_blocked_response(decision)
@@ -530,14 +530,14 @@ class MCPSentry:
 
     # ── Public API ───────────────────────────────────────────────────
 
-    def exclude(self, path_pattern: str) -> "MCPSentry":
+    def exclude(self, path_pattern: str) -> "MCPRampart":
         """Exclude additional paths after initialization."""
         self.exclude_paths.append(path_pattern)
         self._routes = [r for r in self._routes if not self._path_matches(r.path, [path_pattern])]
         self._tools = [t for t in self._tools if not self._path_matches(t.route.path, [path_pattern])]
         return self
 
-    def tool(self, path: str, *, description: str | None = None, name: str | None = None) -> "MCPSentry":
+    def tool(self, path: str, *, description: str | None = None, name: str | None = None) -> "MCPRampart":
         """Override tool metadata for a specific path."""
         for tool in self._tools:
             if tool.route.path == path:
@@ -561,7 +561,7 @@ class MCPSentry:
     def summary(self) -> str:
         """Get a human-readable summary of the bridge."""
         lines = [
-            f"🛡️  MCPSentry: {self.name} v{self.version}",
+            f"🛡️  MCPRampart: {self.name} v{self.version}",
             f"   {len(self._routes)} routes discovered → {len(self._tools)} MCP tools",
             f"   Endpoint: {self.mcp_endpoint}",
             "",
@@ -582,13 +582,13 @@ class MCPSentry:
             AuditReport with severity-tagged findings.
 
         Example:
-            bridge = MCPSentry(app)
+            bridge = MCPRampart(app)
             report = bridge.audit()
             if report.has_blockers():
                 report.print_text()
                 raise SystemExit(1)
         """
-        from mcpsentry.audit import Auditor
+        from mcp_rampart.audit import Auditor
         return Auditor().audit(self)
 
     def enable_guardrails(
@@ -599,7 +599,7 @@ class MCPSentry:
         log_all_calls: bool = True,
         on_block: Optional[Callable] = None,
         on_alert: Optional[Callable] = None,
-    ) -> "MCPSentry":
+    ) -> "MCPRampart":
         """
         Enable runtime guardrails on every incoming `tools/call`.
 
@@ -610,7 +610,7 @@ class MCPSentry:
           - "log":   only log (shadow / observability mode)
 
         Example:
-            bridge = MCPSentry(app)
+            bridge = MCPRampart(app)
             bridge.enable_guardrails(
                 policy="block",
                 on_block=lambda d: send_to_security_team(d),
@@ -620,7 +620,7 @@ class MCPSentry:
             bridge.guardrail.stats()        # → {"total": 42, "blocked": 3, ...}
             bridge.guardrail.recent(10)     # last 10 calls + decisions
         """
-        from mcpsentry.runtime import Guardrail
+        from mcp_rampart.runtime import Guardrail
         self._guardrail = Guardrail(
             policy=policy,
             detect_injection=detect_injection,
@@ -629,7 +629,7 @@ class MCPSentry:
             on_alert=on_alert,
         )
         logger.info(
-            "MCPSentry guardrails enabled (policy=%s, detect_injection=%s)",
+            "MCPRampart guardrails enabled (policy=%s, detect_injection=%s)",
             policy, detect_injection,
         )
         return self

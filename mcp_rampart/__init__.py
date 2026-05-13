@@ -1,5 +1,5 @@
 """
-MCPSentry — The MCP bridge that audits your routes before exposing them to LLMs.
+MCPRampart — The MCP bridge that audits your routes before exposing them to LLMs.
 
 Turn any FastAPI app into an MCP server in one line — with a pre-flight
 security audit so you don't accidentally hand LLMs your admin endpoints,
@@ -9,10 +9,10 @@ that scan every tools/call for prompt-injection patterns.
 Quick start:
 
     from fastapi import FastAPI
-    from mcpsentry import MCPSentry
+    from mcp_rampart import MCPRampart
 
     app = FastAPI()
-    bridge = MCPSentry(app)
+    bridge = MCPRampart(app)
 
     # Pre-flight security audit
     report = bridge.audit()
@@ -24,22 +24,22 @@ Quick start:
     bridge.enable_guardrails(policy="block")
 """
 
-from mcpsentry.audit import (
+from mcp_rampart.audit import (
     AuditReport,
     Auditor,
     Finding,
     IssueType,
     Severity,
 )
-from mcpsentry.bridge import MCPSentry
-from mcpsentry.injection import (
+from mcp_rampart.bridge import MCPRampart
+from mcp_rampart.injection import (
     Action,
     Confidence,
     InjectionDetector,
     InjectionResult,
     PatternMatch,
 )
-from mcpsentry.runtime import (
+from mcp_rampart.runtime import (
     CallLog,
     Guardrail,
     GuardrailDecision,
@@ -49,7 +49,7 @@ from mcpsentry.runtime import (
 __version__ = "0.3.1"
 __all__ = [
     # Bridge
-    "MCPSentry",
+    "MCPRampart",
     # Audit (v0.2)
     "AuditReport",
     "Auditor",

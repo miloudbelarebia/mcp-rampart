@@ -1,7 +1,7 @@
 # Case Study: `tadata-org/fastapi_mcp` Examples
 
 **Project**: [tadata-org/fastapi_mcp](https://github.com/tadata-org/fastapi_mcp) — 11.9k ⭐, MIT
-**Why interesting**: The dominant FastAPI-to-MCP library on the market. If their official examples ship with security issues, MCPSentry's value proposition is no longer hypothetical.
+**Why interesting**: The dominant FastAPI-to-MCP library on the market. If their official examples ship with security issues, MCPRampart's value proposition is no longer hypothetical.
 **Audited at commit**: HEAD (May 2026)
 
 ---
@@ -9,7 +9,7 @@
 ## 1. `examples/shared/apps/items.py` (basic CRUD)
 
 ```
-🛡️  MCPSentry audit report
+🛡️  MCPRampart audit report
    6 tools from 6 routes
    🔴 0 critical · 🟠 0 high · 🟡 2 medium · 🔵 0 low
 
@@ -61,7 +61,7 @@ Routes: 7 | Tools: 7 | Findings: 🔴0 🟠1 🟡2 🔵0
 Verdict: ✅ PASS
 ```
 
-**Comment**: Adds a `/private` route as part of the auth demo. Missing docstring means an LLM has no information about what `/private` does — it'll either ignore the tool or call it blindly. MCPSentry flags this as HIGH because it directly degrades LLM tool selection.
+**Comment**: Adds a `/private` route as part of the auth demo. Missing docstring means an LLM has no information about what `/private` does — it'll either ignore the tool or call it blindly. MCPRampart flags this as HIGH because it directly degrades LLM tool selection.
 
 ---
 
@@ -93,7 +93,7 @@ The Auth0 example, when used as a template, exposes the **entire OAuth2 dance** 
 
 None of this is necessarily exploitable on its own — but **none of it should be visible to an LLM agent that's supposed to call your application APIs**. These routes exist for OAuth clients, not for tool-calling.
 
-MCPSentry's default behaviour:
+MCPRampart's default behaviour:
 ```python
 report = bridge.audit()
 if report.has_blockers():
@@ -111,7 +111,7 @@ Neither of these happens automatically with `fastapi_mcp`. There is no built-in 
 
 ## Comparison
 
-| | `fastapi_mcp` alone | `fastapi_mcp` + manual review | `mcpsentry` |
+| | `fastapi_mcp` alone | `fastapi_mcp` + manual review | `mcp_rampart` |
 |---|---|---|---|
 | Detects auth endpoints | ❌ | depends on reviewer | ✅ |
 | Detects PII fields | ❌ | depends on reviewer | ✅ |

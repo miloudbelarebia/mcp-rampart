@@ -1,5 +1,5 @@
 """
-MCPSentry - Runtime Guardrails
+MCPRampart - Runtime Guardrails
 
 Once an MCP server is live, every `tools/call` request that arrives from
 a language model is, by definition, untrusted input. This module gives
@@ -12,7 +12,7 @@ you a single hook to:
 
 Wire it up once:
 
-    bridge = MCPSentry(app)
+    bridge = MCPRampart(app)
     bridge.enable_guardrails(policy="block")
 
 …and the bridge's tools/call handler will route every incoming request
@@ -28,13 +28,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Optional
 
-from mcpsentry.injection import (
+from mcp_rampart.injection import (
     Action,
     InjectionDetector,
     InjectionResult,
 )
 
-logger = logging.getLogger("mcpsentry.runtime")
+logger = logging.getLogger("mcp_rampart.runtime")
 
 
 class Policy(str, Enum):
@@ -246,7 +246,7 @@ def format_blocked_response(decision: GuardrailDecision) -> dict[str, Any]:
         for m in matched
     )
     text = (
-        f"🛡️ Blocked by MCPSentry runtime guardrail.\n"
+        f"🛡️ Blocked by MCPRampart runtime guardrail.\n"
         f"Reason: {decision.reason}\n"
     )
     if detail:
@@ -254,5 +254,5 @@ def format_blocked_response(decision: GuardrailDecision) -> dict[str, Any]:
     return {
         "content": [{"type": "text", "text": text}],
         "isError": True,
-        "_mcpsentry": decision.to_dict(),
+        "_mcp_rampart": decision.to_dict(),
     }

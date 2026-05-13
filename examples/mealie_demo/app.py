@@ -2,16 +2,16 @@
 Mealie-like Recipe Manager — Demo Application
 
 This simulates the core Mealie FastAPI structure to demonstrate
-how MCPSentry turns ANY FastAPI app into an MCP server — with a
+how MCPRampart turns ANY FastAPI app into an MCP server — with a
 pre-flight security audit and runtime prompt-injection guardrails.
 
-─── WITHOUT MCPSentry ───
+─── WITHOUT MCPRampart ───
 You'd need to install a separate MCP server (mealie-mcp-server),
 configure it, deploy it alongside your app, keep them in sync,
 AND hope nobody exposes /admin or /auth by mistake.
 
-─── WITH MCPSentry (3 lines) ───
-    bridge = MCPSentry(app)
+─── WITH MCPRampart (3 lines) ───
+    bridge = MCPRampart(app)
     bridge.audit()                         # pre-flight
     bridge.enable_guardrails(policy='block')   # runtime
 """
@@ -338,20 +338,20 @@ async def get_categories() -> dict:
 # ═══════════════════════════════════════════════════════════════════
 #
 # ┌──────────────────────────────────────────────────────────────┐
-# │  WITHOUT MCPSentry:                                          │
+# │  WITHOUT MCPRampart:                                          │
 # │  → Install a separate mealie-mcp-server (500+ lines)         │
 # │  → Configure API keys and endpoints                          │
 # │  → Deploy a second process alongside Mealie                  │
 # │  → Hope nobody exposes /admin or /auth by mistake            │
 # │                                                              │
-# │  WITH MCPSentry (below):                                     │
+# │  WITH MCPRampart (below):                                     │
 # │  → 1 line. Your app IS the MCP server.                       │
 # │  → 1 more line. Pre-flight audit catches dangerous routes.   │
 # └──────────────────────────────────────────────────────────────┘
 
-from mcpsentry import MCPSentry  # pip install mcpsentry
+from mcp_rampart import MCPRampart  # pip install mcp-rampart
 
-bridge = MCPSentry(
+bridge = MCPRampart(
     app,
     name="Mealie Recipe Manager",
     description="Self-hosted recipe manager — search recipes, plan meals, manage shopping lists",
@@ -383,7 +383,7 @@ if __name__ == "__main__":
     # Runtime guardrails — scan every tools/call for prompt-injection patterns
     bridge.enable_guardrails(policy="block")
 
-    print("\n🚀 Starting Mealie with MCPSentry...")
+    print("\n🚀 Starting Mealie with MCPRampart...")
     print("   App:        http://localhost:9925/docs")
     print("   MCP:        http://localhost:9925/mcp")
     print("   Guardrails: block-on-injection (every tools/call is scanned)")

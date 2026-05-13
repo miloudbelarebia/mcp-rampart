@@ -1,8 +1,8 @@
-# MCPSentry Case Studies — Real Public FastAPI Projects
+# MCPRampart Case Studies — Real Public FastAPI Projects
 
 This directory contains audit results from running `bridge.audit()` on real public FastAPI projects on GitHub.
 
-The goal: prove that MCPSentry catches concrete security issues in code that thousands of developers already use, not hypothetical ones.
+The goal: prove that MCPRampart catches concrete security issues in code that thousands of developers already use, not hypothetical ones.
 
 ## TL;DR
 
@@ -20,9 +20,9 @@ The goal: prove that MCPSentry catches concrete security issues in code that tho
 >
 > An MCP client like Claude Desktop, if configured against this server, would see those endpoints listed as callable tools.
 >
-> MCPSentry catches all three in `bridge.audit()` and `has_blockers()` returns `True`, preventing the server from starting.
+> MCPRampart catches all three in `bridge.audit()` and `has_blockers()` returns `True`, preventing the server from starting.
 
-This is exactly the failure mode MCPSentry was built to prevent: **a developer ships an "MCP-enabled" version of their app without realising authentication endpoints became LLM tools in the process**.
+This is exactly the failure mode MCPRampart was built to prevent: **a developer ships an "MCP-enabled" version of their app without realising authentication endpoints became LLM tools in the process**.
 
 ## Methodology
 
@@ -31,8 +31,8 @@ Each project was:
 2. Required deps installed in a fresh venv
 3. Audited with:
    ```python
-   from mcpsentry import MCPSentry
-   bridge = MCPSentry(their_app, include_paths=['/*'])  # expose everything
+   from mcp_rampart import MCPRampart
+   bridge = MCPRampart(their_app, include_paths=['/*'])  # expose everything
    report = bridge.audit()
    report.print_text()
    ```
@@ -42,8 +42,8 @@ Each project was:
 ## Reproduce locally
 
 ```bash
-git clone https://github.com/miloudbelarebia/mcpsentry
-cd mcpsentry
+git clone https://github.com/miloudbelarebia/mcp-rampart
+cd mcp-rampart
 pip install -e .
 
 git clone --depth=1 https://github.com/tadata-org/fastapi_mcp.git /tmp/fastapi_mcp
@@ -55,8 +55,8 @@ AUTH0_CLIENT_ID=x AUTH0_CLIENT_SECRET=x \
 python -c "
 import sys; sys.path.insert(0, 'examples')
 from examples import auth_example_auth0 as ex  # 09_auth_example_auth0
-from mcpsentry import MCPSentry
-report = MCPSentry(ex.app, include_paths=['/*']).audit()
+from mcp_rampart import MCPRampart
+report = MCPRampart(ex.app, include_paths=['/*']).audit()
 report.print_text()
 print('blockers:', report.has_blockers())
 "
