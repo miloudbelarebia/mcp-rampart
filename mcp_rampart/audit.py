@@ -26,7 +26,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from mcp_rampart.bridge import DiscoveredRoute, MCPRampart
+    from mcp_rampart.core import DiscoveredRoute, MCPRampart
 
 
 # ── Taxonomy ────────────────────────────────────────────────────────────

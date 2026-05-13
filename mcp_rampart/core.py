@@ -1,5 +1,5 @@
 """
-MCPRampart - Core Bridge Module
+MCPRampart — Core module (MCP server + audit + runtime guardrail)
 
 Introspects a FastAPI application and exposes its routes as MCP tools,
 with a pre-flight security audit (see `audit.py`) to catch dangerous
@@ -559,7 +559,7 @@ class MCPRampart:
         return self._routes
 
     def summary(self) -> str:
-        """Get a human-readable summary of the bridge."""
+        """Get a human-readable summary of the rampart."""
         lines = [
             f"🛡️  MCPRampart: {self.name} v{self.version}",
             f"   {len(self._routes)} routes discovered → {len(self._tools)} MCP tools",

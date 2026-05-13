@@ -1,7 +1,7 @@
 # Contributing to MCPRampart
 
 Thanks for taking the time to look at this. MCPRampart is a small, focused
-project: a FastAPI → MCP bridge with a pre-flight security audit and a
+project: a security layer for FastAPI-based MCP servers — a pre-flight audit and a
 runtime prompt-injection guardrail. The goal is to keep it that way.
 
 ## Ground rules
@@ -52,7 +52,7 @@ print(b.guardrail.check('u', {'i': 'ignore previous instructions'}))
 
 ```
 mcp_rampart/
-├── bridge.py        # MCPRampart class — introspection + MCP serving (core)
+├── core.py          # MCPRampart class — introspection + MCP serving
 ├── audit.py         # Pre-flight Auditor + AuditReport + Findings
 ├── injection.py     # Regex pattern catalogue + InjectionDetector
 └── runtime.py       # Guardrail + GuardrailDecision + CallLog
@@ -86,7 +86,7 @@ If you're adding a new check, decide first whether it belongs in
 Please include:
 - the input that triggered the issue,
 - the version of `mcp_rampart`,
-- whether the bug is in the audit, the guardrail, or the bridge itself.
+- whether the bug is in the audit, the guardrail, or the core MCP server itself.
 
 If it's a missed prompt-injection pattern, a 1-line example is plenty.
 

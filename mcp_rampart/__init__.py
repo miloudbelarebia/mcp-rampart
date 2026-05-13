@@ -1,5 +1,5 @@
 """
-MCPRampart — The MCP bridge that audits your routes before exposing them to LLMs.
+MCPRampart — Security ramparts for FastAPI apps exposed as MCP servers.
 
 Turn any FastAPI app into an MCP server in one line — with a pre-flight
 security audit so you don't accidentally hand LLMs your admin endpoints,
@@ -31,7 +31,7 @@ from mcp_rampart.audit import (
     IssueType,
     Severity,
 )
-from mcp_rampart.bridge import MCPRampart
+from mcp_rampart.core import MCPRampart
 from mcp_rampart.injection import (
     Action,
     Confidence,
@@ -46,9 +46,9 @@ from mcp_rampart.runtime import (
     Policy,
 )
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 __all__ = [
-    # Bridge
+    # Core
     "MCPRampart",
     # Audit (v0.2)
     "AuditReport",

@@ -12,6 +12,6 @@ build/
 # Local working files — not for the public repo
 .DS_Store
 _zip_extract/
-mcp-bridge.zip
+*.zip
 Capture*.png
 *.screenshot.png

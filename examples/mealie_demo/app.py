@@ -334,7 +334,7 @@ async def get_categories() -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 4. MCPSENTRY INTEGRATION — BRIDGE + PRE-FLIGHT AUDIT ✨
+# 4. MCPRAMPART INTEGRATION — RAMPART + PRE-FLIGHT AUDIT ✨
 # ═══════════════════════════════════════════════════════════════════
 #
 # ┌──────────────────────────────────────────────────────────────┐
@@ -370,7 +370,7 @@ rampart.tool("/api/households/mealplans", description="View the weekly meal plan
 if __name__ == "__main__":
     import uvicorn
 
-    # Print the bridge summary
+    # Print the rampart summary
     print("\n" + rampart.summary() + "\n")
 
     # Pre-flight security audit — never expose your API to LLMs blind
