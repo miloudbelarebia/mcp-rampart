@@ -1,12 +1,12 @@
-<h1 align="center">🛡️ MCPRampart</h1>
+<h1 align="center">🛡️ mcp-rampart</h1>
 
 <p align="center">
-  <strong>Security for the FastAPI apps you expose to LLMs via MCP.</strong><br/>
+  <strong>Security ramparts for FastAPI apps exposed as MCP servers.</strong><br/>
   <em>Pre-flight audit. Runtime prompt-injection guardrail. One package.</em>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/mcp_rampart/"><img src="https://img.shields.io/pypi/v/mcp-rampart?color=blue&label=PyPI" alt="PyPI"></a>
+  <a href="https://pypi.org/project/mcp-rampart/"><img src="https://img.shields.io/pypi/v/mcp-rampart?color=blue&label=PyPI" alt="PyPI"></a>
   <a href="https://github.com/miloudbelarebia/mcp-rampart/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="https://github.com/miloudbelarebia/mcp-rampart/stargazers"><img src="https://img.shields.io/github/stars/miloudbelarebia/mcp-rampart?style=social" alt="Stars"></a>
 </p>
@@ -20,36 +20,105 @@ from mcp_rampart import MCPRampart
 app = FastAPI()
 # ... your existing routes ...
 
-rampart = MCPRampart(app)                    # 1. Speak MCP.
-report = rampart.audit()                    # 2. Audit what you'd expose.
+rampart = MCPRampart(app)                       # 1. Speak MCP.
+report = rampart.audit()                        # 2. Audit what you'd expose.
 if report.has_blockers():
     report.print_text(); raise SystemExit(1)
 
-rampart.enable_guardrails(policy="block")   # 3. Block prompt-injection at runtime.
+rampart.enable_guardrails(policy="block")       # 3. Block prompt-injection at runtime.
 ```
+
+> **TL;DR.** MCP security tooling is fragmenting into layers. mcp-rampart is the only library that lives **inside your MCP server** — auditing the routes you're about to expose and scanning the arguments of every `tools/call` request. Everything else (gateways, firewalls, config scanners) lives elsewhere on the wire.
 
 ---
 
-## Why this exists
+## The 4 layers of MCP security
 
-MCP has gone from "interesting experiment" to **97M+ installs per month** in 2026. Anthropic, OpenAI, Google, Cursor, Codex, Microsoft — every major agent ships MCP support, and the Linux Foundation now stewards the protocol. The dev tooling around it has scaled fast.
+MCP went from "experiment" to **97M+ installs per month** in 2026. Security tooling caught up only recently, and most of it solves a different problem than the one you have. Here's the map:
 
-**The security tooling around it has not.**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1 — The LLM itself (Claude, GPT, Gemini)                  │
+│  Worry: hallucination, jailbreaks at the model level             │
+│  → out of scope for everyone — model provider's problem          │
+└──────────────────────┬──────────────────────────────────────────┘
+                       │
+                       ▼  (JSON-RPC over MCP transport)
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 2 — The MCP CLIENT (Claude Desktop, Cursor, agents)       │
+│  Worry: the LLM calls something risky or exfiltrates data        │
+│  Tools: pipelock, mcp-firewall, SecretiveShell/MCP-Bridge        │
+└──────────────────────┬──────────────────────────────────────────┘
+                       │
+                       ▼  (HTTP / SSE)
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 3 — The GATEWAY / proxy in front of the MCP server        │
+│  Worry: who's allowed to talk to this server, with what auth     │
+│  Tools: apache/casbin-gateway, hyprmcp/mcp-gateway               │
+└──────────────────────┬──────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 4 — The MCP SERVER itself ← 🛡️ mcp-rampart                │
+│  Worry: did I expose dangerous routes? is an injection hiding    │
+│         inside the arguments of every tools/call?                │
+│  Tools: mcp-rampart (this project)                               │
+└──────────────────────┬──────────────────────────────────────────┘
+                       │
+                       ▼  (which servers are even installed?)
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 5 — The USER's MCP config (~/.mcp.json, etc.)             │
+│  Worry: am I installing a malicious server on my machine         │
+│  Tools: apisec-inc/mcp-audit, ModelContextProtocol-Security/     │
+│         mcpserver-audit                                          │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-Every FastAPI app shipped as an MCP server is one careless `include_paths=["/*"]` away from handing a language model:
-- its admin endpoints,
-- its auth/OAuth flows,
-- the columns of its user table,
-- the verbs that mutate data.
+| Layer | Question it answers | Representative tool |
+|--:|---|---|
+| 1 | "Is the model itself safe?" | (model provider) |
+| 2 | "Is my agent leaking / calling something risky?" | [pipelock](https://github.com/luckyPipewrench/pipelock) (583⭐) |
+| 3 | "Who's allowed to talk to my server, with what auth?" | [casbin-gateway](https://github.com/apache/casbin-gateway) (559⭐), [hyprmcp/mcp-gateway](https://github.com/hyprmcp/mcp-gateway) (92⭐) |
+| **4** | **"Did I just hand a language model access to my admin endpoints? Is an injection sneaking into the args of every call?"** | **mcp-rampart** |
+| 5 | "Is this MCP server I'm installing actually safe?" | [apisec mcp-audit](https://github.com/apisec-inc/mcp-audit) (149⭐), [mcpserver-audit](https://github.com/ModelContextProtocol-Security/mcpserver-audit) (16⭐) |
 
-And once it's live, **every single `tools/call` request is untrusted input** — written by a model that may have been told to "ignore previous instructions" two turns ago.
+**You probably need more than one layer.** mcp-rampart is the only library that operates at layer 4 — the layer that solves the *MCP-server author's* problem rather than the operator's or the user's.
 
-MCPRampart is two things in one package, designed to make those two failure modes hard to ignore:
+---
 
-1. **A pre-flight `audit()`** that walks every route you'd expose and refuses to start the server when something looks dangerous.
-2. **A runtime `Guardrail`** that scans the arguments of every `tools/call` against a curated prompt-injection pattern catalogue and blocks the call before your handler runs.
+## Why "framework-aware", not "MCP-generic"
 
-You don't have to integrate three libraries, write your own regex layer, or stand up a separate proxy. It's `pip install mcp-rampart` and three lines of code.
+You'll notice every tool at layers 2, 3, and 5 is **framework-agnostic** — they intercept the wire (HTTP, JSON-RPC, config files) and don't care what's behind. That works for them because they don't need to.
+
+mcp-rampart **needs to** look behind. The pre-flight audit literally cannot exist as a proxy:
+
+| What mcp-rampart can see | Why (it's installed *in* the app) |
+|---|---|
+| `@app.get("/api/admin/users/...")` decorators | reads `app.routes` directly |
+| Pydantic response models declaring `email`, `phone`, `ssn` | introspects `route.response_model` |
+| Missing docstrings on tool handlers | reads `route.endpoint.__doc__` |
+| Untyped parameters that fall back to `str` | reads `inspect.signature(handler)` |
+| Path patterns that look like `/auth/`, `/oauth/`, `/internal/` | pattern-matches `route.path` |
+
+A proxy at layer 3 sees `POST /mcp {"method":"tools/call","name":"delete_user","args":{...}}`. It does **not** see `@app.delete("/api/admin/users/{user_id}")` three steps upstream. So it can't tell you "you're about to expose your admin to an LLM" — it can only tell you "someone just called delete_user".
+
+The trade-off: mcp-rampart is currently **FastAPI-only**. We're paying that price on purpose for now, because deep introspection is what makes the audit valuable. Node.js and Flask/Django are next on the roadmap.
+
+---
+
+## Where mcp-rampart is uniquely positioned
+
+Five concrete cells where mcp-rampart is the only ✅:
+
+| | mcp-rampart | pipelock | casbin-gw | apisec mcp-audit | hyprmcp |
+|---|:--:|:--:|:--:|:--:|:--:|
+| Runs **inside your FastAPI app** (no extra process) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Audits the **routes _you_ are about to expose** (not someone else's) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Refuses to start the server on **CRITICAL** findings | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Prompt-injection** detection on every `tools/call` | ✅ | partial | ❌ | ❌ | ❌ |
+| Three-policy model (`block` / `alert` / `log`) + pluggable callbacks | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+Different shape, different question, different price tag.
 
 ---
 
@@ -70,7 +139,7 @@ async def get_user(user_id: int):
     """Get a user by their ID."""
     return {"id": user_id, "name": "Alice"}
 
-rampart = MCPRampart(app)                    # auto-discovers routes, mounts /mcp
+rampart = MCPRampart(app)                       # auto-discovers routes, mounts /mcp
 print(rampart.summary())
 
 # Pre-flight audit — refuses to start the server on CRITICAL findings
@@ -102,7 +171,7 @@ Any MCP client (Claude Desktop, ChatGPT, Gemini, Cursor, Codex) can connect.
 | 🟠 HIGH | `MISSING_DOCSTRING` | no description → LLM will guess and call the wrong tool |
 | 🟠 HIGH | `SENSITIVE_PARAM_NAME` | parameter name contains `password`, `token`, `api_key`, … |
 | 🟠 HIGH | `PII_IN_RESPONSE` | response schema declares fields like `email`, `phone`, `ssn`, … |
-| 🟡 MEDIUM | `DESTRUCTIVE_METHOD` | `DELETE` / `PUT` / `PATCH` exposed without explicit consent flow |
+| 🟡 MEDIUM | `DESTRUCTIVE_METHOD` | `DELETE` / `PUT` / `PATCH` exposed without an explicit consent flow |
 | 🔵 LOW | `UNTYPED_PARAMETER` | 3+ parameters falling back to `str` — LLMs may send malformed inputs |
 
 Sample output on a deliberately bad app:
@@ -158,7 +227,7 @@ rampart.enable_guardrails(policy="log")       # observability / shadow mode
 
 ```python
 def to_security_team(decision):
-    slack.post(f"⚠️ MCPRampart blocked {decision.tool_name}: {decision.reason}")
+    slack.post(f"⚠️ mcp-rampart blocked {decision.tool_name}: {decision.reason}")
 
 rampart.enable_guardrails(policy="block", on_block=to_security_team)
 ```
@@ -199,37 +268,7 @@ We ran `rampart.audit()` against the official examples of [`tadata-org/fastapi_m
 | `08_auth_token_passthrough` | 0 | 1 | 2 | 0 | ✅ |
 | **`09_auth_example_auth0`** | **3** | **6** | **0** | **1** | **❌ BLOCK** |
 
-**Headline**: the official Auth0 example **exposes `/oauth/authorize`, `/oauth/register`, and `/.well-known/oauth-authorization-server` to LLM clients**. MCPRampart catches all three and refuses to start the server. Full breakdown in [`case-studies/01-fastapi-mcp-examples.md`](case-studies/01-fastapi-mcp-examples.md).
-
----
-
-## Where MCPRampart sits in the MCP-security landscape
-
-MCP security tools have started shipping. Here's an honest map:
-
-| Project | ⭐ | Shape | What it does |
-|---|--:|---|---|
-| **`mcp_rampart` (this)** | new | **Embedded library** (`pip install` into your FastAPI app) | **Pre-flight audit of your own routes + runtime injection guardrail on every `tools/call`** |
-| [`luckyPipewrench/pipelock`](https://github.com/luckyPipewrench/pipelock) | 583 | Client-side firewall | Agent egress control, DLP, sits between agent and MCP server |
-| [`apache/casbin-gateway`](https://github.com/apache/casbin-gateway) | 559 | HTTP gateway | Casbin policy enforcement in front of MCP traffic |
-| [`apisec-inc/mcp-audit`](https://github.com/apisec-inc/mcp-audit) | 149 | Config scanner | Scans `mcp.json` for exposed secrets / unsafe servers installed on your machine |
-| [`hyprmcp/mcp-gateway`](https://github.com/hyprmcp/mcp-gateway) | 92 | OAuth proxy | DCR + analytics in front of MCP servers |
-| [`ModelContextProtocol-Security/mcpserver-audit`](https://github.com/ModelContextProtocol-Security/mcpserver-audit) | 16 | CLI | Audit MCP servers *before* you install them |
-
-**Where MCPRampart is the only one ✅**
-
-| | mcp_rampart | pipelock | casbin-gateway | apisec mcp-audit | hyprmcp |
-|---|:--:|:--:|:--:|:--:|:--:|
-| Runs **inside your FastAPI app** (no extra process) | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Audits the **routes _you_ are about to expose** (not someone else's) | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Refuses to start the server on **CRITICAL** findings | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Prompt-injection** detection on every `tools/call` | ✅ | partial | ❌ | ❌ | ❌ |
-| Pluggable `on_block` / `on_alert` callbacks | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Three-policy model (`block` / `alert` / `log`) | ✅ | ❌ | ❌ | ❌ | ❌ |
-
-The gateway / firewall / config-scanner projects each solve a real problem **for the agent operator or the MCP user**. MCPRampart solves the dual problem **for the MCP server author**: did you accidentally expose something dangerous, and if so, are you willing to ship anyway?
-
-If you're building an MCP server (not consuming someone else's), this is the layer you don't currently have.
+**Headline**: the official Auth0 example **exposes `/oauth/authorize`, `/oauth/register`, and `/.well-known/oauth-authorization-server` to LLM clients**. mcp-rampart catches all three and refuses to start the server. Full breakdown in [`case-studies/01-fastapi-mcp-examples.md`](case-studies/01-fastapi-mcp-examples.md).
 
 ---
 
@@ -244,7 +283,7 @@ If you're building an MCP server (not consuming someone else's), this is the lay
 │   @app.delete("/api/admin/...")  ← BAD              │
 │                                                     │
 │   ┌─────────────────────────────────────────────┐   │
-│   │            MCPRampart (embedded)              │   │
+│   │            mcp-rampart (embedded)            │   │
 │   │                                             │   │
 │   │  1. Introspect routes at startup            │   │
 │   │  2. Extract Pydantic schemas + type hints   │   │
@@ -270,10 +309,30 @@ If you're building an MCP server (not consuming someone else's), this is the lay
 - [x] **v0.1** — FastAPI introspection, MCP Streamable HTTP transport, examples
 - [x] **v0.2** — `rampart.audit()` with 7 security checks, severity levels, JSON/text output
 - [x] **v0.3** — Runtime guardrails: prompt-injection detection + block/alert/log policy + structured callbacks
-- [ ] **v0.4** — Multi-framework: Flask + Django adapters (the real white space)
-- [ ] **v0.5** — Custom audit & guardrail rules (decorators / config / plugins) + tunable confidence thresholds
-- [ ] **v0.6** — Auth passthrough (OAuth2 / API keys / JWT), stdio transport
+- [ ] **v0.4** — **Node.js / TypeScript port** (`mcp-rampart-js` for Hono / Express / Fastify). Half of new MCP servers in 2026 ship in JS — this is where the biggest reach gain is, not Python alternatives.
+- [ ] **v0.5** — Flask + Django adapters (the rest of the Python web ecosystem)
+- [ ] **v0.6** — Custom audit & guardrail rules (decorators / config / plugins) + tunable confidence thresholds
+- [ ] **v0.7** — Auth passthrough (OAuth2 / API keys / JWT), stdio transport
 - [ ] **v1.0** — Smart tool grouping (collapse CRUD into fewer tools), policy-as-code, OpenAPI/Asyncapi spec ingestion
+
+---
+
+## FAQ
+
+**Why not just be a generic MCP proxy that works with any framework?**
+Because the audit needs to read your code — Pydantic models, decorators, type hints, docstrings. A proxy on the wire can't see those. See [Why framework-aware](#why-framework-aware-not-mcp-generic).
+
+**Is this the same as pipelock / casbin-gateway / hyprmcp / apisec mcp-audit?**
+No. They live at layers 2, 3, and 5. mcp-rampart lives at layer 4. See [The 4 layers of MCP security](#the-4-layers-of-mcp-security).
+
+**Do I still need a gateway / firewall if I use mcp-rampart?**
+Probably yes. mcp-rampart catches code-side issues and runtime injection. A gateway adds auth + rate-limiting + network policy. They're complementary.
+
+**What happens if mcp-rampart blocks a legitimate call?**
+The MCP client receives an `isError: true` response with the diagnostic in the response body. Switch to `policy="alert"` while you tune patterns. You can also bypass per-route with `rampart.exclude(...)`.
+
+**Can I add my own rules?**
+Custom rules land in v0.6. Until then, subclass `Auditor` or `InjectionDetector` and pass it via `custom_detector=`.
 
 ---
 
