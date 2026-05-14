@@ -162,7 +162,7 @@ Any MCP client (Claude Desktop, ChatGPT, Gemini, Cursor, Codex) can connect.
 
 ## The pre-flight audit, in detail
 
-`rampart.audit()` walks every exposed tool and runs **7 checks**. Each finding gets a severity tag, a suggestion, and a category code you can match in CI.
+`rampart.audit()` walks every exposed tool and runs **8 checks**. Each finding gets a severity tag, a suggestion, and a category code you can match in CI.
 
 | Severity | Check | Triggers when… |
 |---|---|---|
@@ -173,6 +173,7 @@ Any MCP client (Claude Desktop, ChatGPT, Gemini, Cursor, Codex) can connect.
 | 🟠 HIGH | `PII_IN_RESPONSE` | response schema declares fields like `email`, `phone`, `ssn`, … |
 | 🟡 MEDIUM | `DESTRUCTIVE_METHOD` | `DELETE` / `PUT` / `PATCH` exposed without an explicit consent flow |
 | 🔵 LOW | `UNTYPED_PARAMETER` | 3+ parameters falling back to `str` — LLMs may send malformed inputs |
+| 🔵 LOW | `WILDCARD_RESPONSE` | `GET` route with no `response_model` declared — LLM can't anticipate the output shape |
 
 Sample output on a deliberately bad app:
 
@@ -309,10 +310,11 @@ We ran `rampart.audit()` against the official examples of [`tadata-org/fastapi_m
 - [x] **v0.1** — FastAPI introspection, MCP Streamable HTTP transport, examples
 - [x] **v0.2** — `rampart.audit()` with 7 security checks, severity levels, JSON/text output
 - [x] **v0.3** — Runtime guardrails: prompt-injection detection + block/alert/log policy + structured callbacks
-- [ ] **v0.4** — **Node.js / TypeScript port** (`mcp-rampart-js` for Hono / Express / Fastify). Half of new MCP servers in 2026 ship in JS — this is where the biggest reach gain is, not Python alternatives.
-- [ ] **v0.5** — Flask + Django adapters (the rest of the Python web ecosystem)
-- [ ] **v0.6** — Custom audit & guardrail rules (decorators / config / plugins) + tunable confidence thresholds
-- [ ] **v0.7** — Auth passthrough (OAuth2 / API keys / JWT), stdio transport
+- [x] **v0.4** — 56-test pytest suite, GitHub Actions CI (py 3.10/3.11/3.12 + ruff + build), SECURITY.md, +1 audit check (`WILDCARD_RESPONSE`), +11 injection patterns (27 total: 10 HIGH / 8 MEDIUM / 9 LOW), issue & PR templates, FUNDING
+- [ ] **v0.5** — **Node.js / TypeScript port** (`mcp-rampart-js` for Hono / Express / Fastify). Half of new MCP servers in 2026 ship in JS.
+- [ ] **v0.6** — Flask + Django adapters (the rest of the Python web ecosystem)
+- [ ] **v0.7** — Custom audit & guardrail rules (decorators / config / plugins) + tunable confidence thresholds
+- [ ] **v0.8** — Auth passthrough (OAuth2 / API keys / JWT), stdio transport
 - [ ] **v1.0** — Smart tool grouping (collapse CRUD into fewer tools), policy-as-code, OpenAPI/Asyncapi spec ingestion
 
 ---

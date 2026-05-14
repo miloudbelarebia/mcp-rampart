@@ -105,11 +105,12 @@ class MCPRampart:
         self.name = name or app.title or "MCPRampart Server"
         self.version = version or getattr(app, "version", "1.0.0")
         self.description = description or app.description or f"MCP server for {self.name}"
-        self.include_paths = include_paths or ["/api/*"]
-        self.exclude_paths = exclude_paths or [
+        # Distinguish "not provided" (use defaults) from "explicitly empty" (no filter)
+        self.include_paths = ["/api/*"] if include_paths is None else include_paths
+        self.exclude_paths = [
             "*/docs*", "*/redoc*", "*/openapi*", "*/mcp*",
             "*/auth/*", "*/token*",
-        ]
+        ] if exclude_paths is None else exclude_paths
         self.max_tools = max_tools
         self.mcp_endpoint = mcp_endpoint
 

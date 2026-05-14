@@ -103,6 +103,25 @@ _RAW_PATTERNS: list[tuple[str, Confidence, str, str]] = [
         "Tries to start a new session as someone else",
     ),
 
+    # === HIGH confidence — legacy jailbreak labels (DAN/STAN/AIM/Kevin…) ===
+    (
+        r"\b(?:DAN|STAN|AIM|KEVIN|JAILBREAK|DUDE|MONGO\s*TOM)\s*(?:mode|prompt|character)?\b",
+        Confidence.HIGH, "legacy_jailbreak",
+        "Mentions a well-known jailbreak persona",
+    ),
+    (
+        r"\bdo\s+anything\s+now\b",
+        Confidence.HIGH, "legacy_jailbreak",
+        "Classic 'Do Anything Now' jailbreak phrase",
+    ),
+
+    # === MEDIUM — indirect injection via quoted impersonation ===
+    (
+        r"(?:^|\s)[\"']?(?:user|system|assistant|admin)[\"']?\s*(?:said|says|wrote|writes|told|tells|asks)\s*[:,]",
+        Confidence.MEDIUM, "indirect_via_quote",
+        "Claims an instruction came from another speaker",
+    ),
+
     # === LOW confidence — suspicious but possibly benign ===
     (
         r"\b(?:send|post|upload|export|exfiltrate)\s+(?:your|all|the)\s+(?:data|info|context|tokens?|secrets?|keys?)\b",
@@ -115,14 +134,34 @@ _RAW_PATTERNS: list[tuple[str, Confidence, str, str]] = [
         "Contains an HTML <script> tag",
     ),
     (
-        r"(?:^|\s)(?:curl|wget|fetch)\s+https?://",
+        r"(?:^|\s)(?:curl|wget|fetch|nc|netcat)\s+https?://",
         Confidence.LOW, "remote_fetch",
         "Includes a command that fetches an external URL",
     ),
     (
-        r"\b(?:base64|atob|btoa)\s*[\(:]",
+        r"\b(?:base64(?:\.[a-z0-9_]+)?|atob|btoa)\s*[\(:]",
         Confidence.LOW, "obfuscation",
         "Uses base64-style obfuscation",
+    ),
+    (
+        r"\[[^\]]+\]\(\s*(?:javascript|data):",
+        Confidence.LOW, "markdown_injection",
+        "Markdown link with javascript:/data: scheme",
+    ),
+    (
+        r"\b(?:eval|exec|__import__|os\.system|subprocess\.(?:call|run|Popen))\s*\(",
+        Confidence.LOW, "code_execution",
+        "Calls a code-execution primitive",
+    ),
+    (
+        r"(?:\.\./){3,}",
+        Confidence.LOW, "path_traversal",
+        "Repeated `../` path-traversal sequence",
+    ),
+    (
+        r"(?:^|\n)\s*(?:!|%(?:cd|env|run|writefile|store|magic))[a-z_]*\s",
+        Confidence.LOW, "notebook_escape",
+        "Jupyter/IPython shell or magic escape",
     ),
 ]
 

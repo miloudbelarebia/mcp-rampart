@@ -50,6 +50,7 @@ class IssueType(str, Enum):
     MISSING_DOCSTRING = "missing_docstring"
     SENSITIVE_PARAM_NAME = "sensitive_param_name"
     UNTYPED_PARAMETER = "untyped_parameter"
+    WILDCARD_RESPONSE = "wildcard_response"
 
 
 SEVERITY_ICON = {
@@ -296,6 +297,17 @@ class Auditor:
                 route_method=route.method,
                 message=f"{len(untyped)} parameters fall back to 'string' — LLMs may send malformed inputs",
                 suggestion="Annotate parameters with explicit types (int, bool, list[str], Pydantic models)",
+            ))
+
+        # 8. Wildcard / unspecified response model → LOW (LLM gets unpredictable output)
+        if route.response_schema is None and route.method == "GET":
+            findings.append(Finding(
+                severity=Severity.LOW,
+                issue=IssueType.WILDCARD_RESPONSE,
+                route_path=route.path,
+                route_method=route.method,
+                message="No response_model declared — the LLM can't anticipate the shape of what it'll receive",
+                suggestion="Add response_model=YourPydanticModel to the route decorator",
             ))
 
         return findings
