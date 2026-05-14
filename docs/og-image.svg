@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" font-family="-apple-system,BlinkMacSystemFont,system-ui,sans-serif">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#1a1530"/>
+      <stop offset="100%" stop-color="#0b0d10"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- subtle grid -->
+  <g stroke="#1f1a30" stroke-width="1" opacity="0.6">
+    <line x1="0" y1="158" x2="1200" y2="158"/>
+    <line x1="0" y1="316" x2="1200" y2="316"/>
+    <line x1="0" y1="474" x2="1200" y2="474"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+  </g>
+
+  <!-- logo: shield -->
+  <rect x="80" y="78" width="64" height="64" rx="14" fill="#a78bfa"/>
+  <g transform="translate(80,78)">
+    <path d="M32 12 L52 20 V36 C52 49 32 58 32 58 C32 58 12 49 12 36 V20 Z" fill="none" stroke="#0b0d10" stroke-width="5.5" stroke-linejoin="round"/>
+    <path d="M25 34 L31 40 L40 28" stroke="#0b0d10" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="164" y="124" font-size="34" font-weight="700" fill="#e6edf3">mcp-rampart</text>
+
+  <!-- pill -->
+  <rect x="80" y="180" width="260" height="34" rx="17" fill="#11141a" stroke="#222831"/>
+  <circle cx="100" cy="197" r="4" fill="#a78bfa"/>
+  <text x="115" y="202" font-size="13" fill="#9aa4b2">v0.4.0 — now on PyPI · CI green</text>
+
+  <!-- headline -->
+  <text x="80" y="290" font-size="58" font-weight="800" fill="#e6edf3" letter-spacing="-1.5">Security ramparts for</text>
+  <text x="80" y="358" font-size="58" font-weight="800" fill="#e6edf3" letter-spacing="-1.5"><tspan fill="url(#accent)" font-style="italic">FastAPI MCP servers</tspan>.</text>
+
+  <!-- subhead -->
+  <text x="80" y="416" font-size="22" fill="#9aa4b2">Pre-flight audit · Runtime prompt-injection guardrail · Layer 4 of MCP security</text>
+
+  <!-- stats -->
+  <g transform="translate(80,470)">
+    <rect width="240" height="100" rx="14" fill="#11141a" stroke="#222831"/>
+    <text x="20" y="44" font-size="32" font-weight="700" fill="#a78bfa" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">97M+</text>
+    <text x="20" y="76" font-size="14" fill="#9aa4b2">MCP installs / month</text>
+  </g>
+  <g transform="translate(340,470)">
+    <rect width="240" height="100" rx="14" fill="#11141a" stroke="#222831"/>
+    <text x="20" y="44" font-size="32" font-weight="700" fill="#a78bfa" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">8</text>
+    <text x="20" y="76" font-size="14" fill="#9aa4b2">audit checks at startup</text>
+  </g>
+  <g transform="translate(600,470)">
+    <rect width="240" height="100" rx="14" fill="#11141a" stroke="#222831"/>
+    <text x="20" y="44" font-size="32" font-weight="700" fill="#a78bfa" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">27</text>
+    <text x="20" y="76" font-size="14" fill="#9aa4b2">injection patterns at runtime</text>
+  </g>
+  <g transform="translate(860,470)">
+    <rect width="240" height="100" rx="14" fill="#11141a" stroke="#222831"/>
+    <text x="20" y="44" font-size="32" font-weight="700" fill="#a78bfa" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">56</text>
+    <text x="20" y="76" font-size="14" fill="#9aa4b2">tests passing on CI</text>
+  </g>
+
+  <!-- bottom right url -->
+  <text x="1120" y="600" text-anchor="end" font-size="14" fill="#6b7280" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">github.com/miloudbelarebia/mcp-rampart</text>
+</svg>
