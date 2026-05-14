@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 class Severity(str, Enum):
     """Severity of a security finding."""
+
     CRITICAL = "critical"  # Blocks exposure by default
     HIGH = "high"
     MEDIUM = "medium"
@@ -43,6 +44,7 @@ class Severity(str, Enum):
 
 class IssueType(str, Enum):
     """Categories of security issues detected by the auditor."""
+
     EXPOSED_AUTH = "exposed_auth"
     EXPOSED_ADMIN = "exposed_admin"
     DESTRUCTIVE_METHOD = "destructive_method"
@@ -55,10 +57,10 @@ class IssueType(str, Enum):
 
 SEVERITY_ICON = {
     Severity.CRITICAL: "🔴",
-    Severity.HIGH:     "🟠",
-    Severity.MEDIUM:   "🟡",
-    Severity.LOW:      "🔵",
-    Severity.INFO:     "⚪",
+    Severity.HIGH: "🟠",
+    Severity.MEDIUM: "🟡",
+    Severity.LOW: "🔵",
+    Severity.INFO: "⚪",
 }
 
 
@@ -68,6 +70,7 @@ SEVERITY_ICON = {
 @dataclass
 class Finding:
     """A single security finding from the auditor."""
+
     severity: Severity
     issue: IssueType
     route_path: str
@@ -96,6 +99,7 @@ class Finding:
 @dataclass
 class AuditReport:
     """Aggregated audit result for an MCPRampart."""
+
     findings: list[Finding] = field(default_factory=list)
     total_routes: int = 0
     exposed_tools: int = 0
@@ -138,7 +142,9 @@ class AuditReport:
         ]
         # Sort by severity (critical first)
         severity_order = {s: i for i, s in enumerate(Severity)}
-        sorted_findings = sorted(self.findings, key=lambda f: severity_order[f.severity])
+        sorted_findings = sorted(
+            self.findings, key=lambda f: severity_order[f.severity]
+        )
         for f in sorted_findings:
             lines.append("   " + f.format_line())
             if f.suggestion:
@@ -171,28 +177,67 @@ class Auditor:
 
     # Path heuristics
     AUTH_PATH_PATTERNS = [
-        r"/auth(/|$)", r"/login", r"/logout", r"/signin", r"/signout",
-        r"/token", r"/oauth", r"/sso", r"/saml", r"/credentials",
+        r"/auth(/|$)",
+        r"/login",
+        r"/logout",
+        r"/signin",
+        r"/signout",
+        r"/token",
+        r"/oauth",
+        r"/sso",
+        r"/saml",
+        r"/credentials",
     ]
     ADMIN_PATH_PATTERNS = [
-        r"/admin(/|$)", r"/internal(/|$)", r"/_/", r"/debug(/|$)",
-        r"/dev(/|$)", r"/superuser", r"/root", r"/management",
+        r"/admin(/|$)",
+        r"/internal(/|$)",
+        r"/_/",
+        r"/debug(/|$)",
+        r"/dev(/|$)",
+        r"/superuser",
+        r"/root",
+        r"/management",
     ]
 
     # Field-name heuristics for PII in response schemas
     PII_FIELD_KEYWORDS = [
-        "email", "phone", "ssn", "social_security",
-        "credit_card", "card_number", "cvv", "cvc",
-        "password", "passwd", "pwd", "secret", "private_key",
-        "api_key", "session_id", "auth_token",
-        "address", "zip_code", "postal_code", "date_of_birth", "dob",
-        "passport", "national_id", "tax_id", "iban",
+        "email",
+        "phone",
+        "ssn",
+        "social_security",
+        "credit_card",
+        "card_number",
+        "cvv",
+        "cvc",
+        "password",
+        "passwd",
+        "pwd",
+        "secret",
+        "private_key",
+        "api_key",
+        "session_id",
+        "auth_token",
+        "address",
+        "zip_code",
+        "postal_code",
+        "date_of_birth",
+        "dob",
+        "passport",
+        "national_id",
+        "tax_id",
+        "iban",
     ]
 
     # Parameter-name heuristics for sensitive inputs
     SENSITIVE_PARAM_KEYWORDS = [
-        "password", "passwd", "secret", "api_key", "auth_token",
-        "private_key", "session_id", "csrf",
+        "password",
+        "passwd",
+        "secret",
+        "api_key",
+        "auth_token",
+        "private_key",
+        "session_id",
+        "csrf",
     ]
 
     DESTRUCTIVE_METHODS = {"DELETE", "PUT", "PATCH"}
@@ -214,60 +259,70 @@ class Auditor:
 
         # 1. Auth endpoint exposed → CRITICAL
         if self._matches_patterns(route.path, self.AUTH_PATH_PATTERNS):
-            findings.append(Finding(
-                severity=Severity.CRITICAL,
-                issue=IssueType.EXPOSED_AUTH,
-                route_path=route.path,
-                route_method=route.method,
-                message="Authentication endpoint exposed to LLM clients",
-                suggestion=f"Add '{route.path}' to exclude_paths",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.CRITICAL,
+                    issue=IssueType.EXPOSED_AUTH,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message="Authentication endpoint exposed to LLM clients",
+                    suggestion=f"Add '{route.path}' to exclude_paths",
+                )
+            )
 
         # 2. Admin/internal endpoint exposed → CRITICAL
         if self._matches_patterns(route.path, self.ADMIN_PATH_PATTERNS):
-            findings.append(Finding(
-                severity=Severity.CRITICAL,
-                issue=IssueType.EXPOSED_ADMIN,
-                route_path=route.path,
-                route_method=route.method,
-                message="Admin / internal endpoint exposed to LLM clients",
-                suggestion="Exclude this route from MCP exposure",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.CRITICAL,
+                    issue=IssueType.EXPOSED_ADMIN,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message="Admin / internal endpoint exposed to LLM clients",
+                    suggestion="Exclude this route from MCP exposure",
+                )
+            )
 
         # 3. Destructive method → MEDIUM (informational guardrail)
         if route.method in self.DESTRUCTIVE_METHODS:
-            findings.append(Finding(
-                severity=Severity.MEDIUM,
-                issue=IssueType.DESTRUCTIVE_METHOD,
-                route_path=route.path,
-                route_method=route.method,
-                message=f"Destructive {route.method} — an LLM call can mutate/delete data",
-                suggestion="Document the consequences in the docstring; consider requiring confirmation in your handler",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.MEDIUM,
+                    issue=IssueType.DESTRUCTIVE_METHOD,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message=f"Destructive {route.method} — an LLM call can mutate/delete data",
+                    suggestion="Document the consequences in the docstring; consider requiring confirmation in your handler",
+                )
+            )
 
         # 4. Missing docstring → HIGH (LLM picks tools by description)
         if not (route.description or "").strip():
-            findings.append(Finding(
-                severity=Severity.HIGH,
-                issue=IssueType.MISSING_DOCSTRING,
-                route_path=route.path,
-                route_method=route.method,
-                message="No docstring — an LLM will guess this tool's purpose",
-                suggestion="Add a clear docstring or `summary=` to the route decorator",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.HIGH,
+                    issue=IssueType.MISSING_DOCSTRING,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message="No docstring — an LLM will guess this tool's purpose",
+                    suggestion="Add a clear docstring or `summary=` to the route decorator",
+                )
+            )
 
         # 5. Sensitive parameter names → HIGH
         for param_name in route.parameters:
             lower = param_name.lower()
             if any(kw in lower for kw in self.SENSITIVE_PARAM_KEYWORDS):
-                findings.append(Finding(
-                    severity=Severity.HIGH,
-                    issue=IssueType.SENSITIVE_PARAM_NAME,
-                    route_path=route.path,
-                    route_method=route.method,
-                    message=f"Parameter '{param_name}' looks like a credential",
-                    suggestion="Don't expose authentication flows via MCP — use exclude_paths",
-                ))
+                findings.append(
+                    Finding(
+                        severity=Severity.HIGH,
+                        issue=IssueType.SENSITIVE_PARAM_NAME,
+                        route_path=route.path,
+                        route_method=route.method,
+                        message=f"Parameter '{param_name}' looks like a credential",
+                        suggestion="Don't expose authentication flows via MCP — use exclude_paths",
+                    )
+                )
 
         # 6. PII in response schema → HIGH
         if route.response_schema:
@@ -275,40 +330,47 @@ class Auditor:
             if pii_fields:
                 preview = ", ".join(pii_fields[:3])
                 more = f" (+{len(pii_fields) - 3} more)" if len(pii_fields) > 3 else ""
-                findings.append(Finding(
-                    severity=Severity.HIGH,
-                    issue=IssueType.PII_IN_RESPONSE,
-                    route_path=route.path,
-                    route_method=route.method,
-                    message=f"Response may leak PII fields: {preview}{more}",
-                    suggestion="Mask PII before returning, or restrict this route from MCP exposure",
-                ))
+                findings.append(
+                    Finding(
+                        severity=Severity.HIGH,
+                        issue=IssueType.PII_IN_RESPONSE,
+                        route_path=route.path,
+                        route_method=route.method,
+                        message=f"Response may leak PII fields: {preview}{more}",
+                        suggestion="Mask PII before returning, or restrict this route from MCP exposure",
+                    )
+                )
 
         # 7. Untyped query/path parameters → LOW (LLM may send junk)
         untyped = [
-            n for n, info in route.parameters.items()
+            n
+            for n, info in route.parameters.items()
             if info.get("type") == "string" and "default" not in info
         ]
         if len(untyped) >= 3:
-            findings.append(Finding(
-                severity=Severity.LOW,
-                issue=IssueType.UNTYPED_PARAMETER,
-                route_path=route.path,
-                route_method=route.method,
-                message=f"{len(untyped)} parameters fall back to 'string' — LLMs may send malformed inputs",
-                suggestion="Annotate parameters with explicit types (int, bool, list[str], Pydantic models)",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.LOW,
+                    issue=IssueType.UNTYPED_PARAMETER,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message=f"{len(untyped)} parameters fall back to 'string' — LLMs may send malformed inputs",
+                    suggestion="Annotate parameters with explicit types (int, bool, list[str], Pydantic models)",
+                )
+            )
 
         # 8. Wildcard / unspecified response model → LOW (LLM gets unpredictable output)
         if route.response_schema is None and route.method == "GET":
-            findings.append(Finding(
-                severity=Severity.LOW,
-                issue=IssueType.WILDCARD_RESPONSE,
-                route_path=route.path,
-                route_method=route.method,
-                message="No response_model declared — the LLM can't anticipate the shape of what it'll receive",
-                suggestion="Add response_model=YourPydanticModel to the route decorator",
-            ))
+            findings.append(
+                Finding(
+                    severity=Severity.LOW,
+                    issue=IssueType.WILDCARD_RESPONSE,
+                    route_path=route.path,
+                    route_method=route.method,
+                    message="No response_model declared — the LLM can't anticipate the shape of what it'll receive",
+                    suggestion="Add response_model=YourPydanticModel to the route decorator",
+                )
+            )
 
         return findings
 

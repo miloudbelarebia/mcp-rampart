@@ -12,20 +12,23 @@ import inspect
 import json
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
-from starlette.routing import Route
+
+if TYPE_CHECKING:
+    from mcp_rampart.audit import AuditReport
 
 logger = logging.getLogger("mcp_rampart")
 
 
 class ToolCategory(str, Enum):
     """Auto-detected tool categories based on HTTP method and path patterns."""
+
     QUERY = "query"
     CREATE = "create"
     UPDATE = "update"
@@ -36,6 +39,7 @@ class ToolCategory(str, Enum):
 @dataclass
 class DiscoveredRoute:
     """A route discovered from the FastAPI application."""
+
     path: str
     method: str
     name: str
@@ -53,6 +57,7 @@ class DiscoveredRoute:
 @dataclass
 class MCPTool:
     """An MCP tool generated from a discovered route."""
+
     name: str
     description: str
     input_schema: dict[str, Any]
@@ -104,13 +109,23 @@ class MCPRampart:
         self.app = app
         self.name = name or app.title or "MCPRampart Server"
         self.version = version or getattr(app, "version", "1.0.0")
-        self.description = description or app.description or f"MCP server for {self.name}"
+        self.description = (
+            description or app.description or f"MCP server for {self.name}"
+        )
         # Distinguish "not provided" (use defaults) from "explicitly empty" (no filter)
         self.include_paths = ["/api/*"] if include_paths is None else include_paths
-        self.exclude_paths = [
-            "*/docs*", "*/redoc*", "*/openapi*", "*/mcp*",
-            "*/auth/*", "*/token*",
-        ] if exclude_paths is None else exclude_paths
+        self.exclude_paths = (
+            [
+                "*/docs*",
+                "*/redoc*",
+                "*/openapi*",
+                "*/mcp*",
+                "*/auth/*",
+                "*/token*",
+            ]
+            if exclude_paths is None
+            else exclude_paths
+        )
         self.max_tools = max_tools
         self.mcp_endpoint = mcp_endpoint
 
@@ -422,7 +437,9 @@ class MCPRampart:
             elif method == "ping":
                 result = {}
             else:
-                return self._jsonrpc_error(request_id, -32601, f"Method not found: {method}")
+                return self._jsonrpc_error(
+                    request_id, -32601, f"Method not found: {method}"
+                )
         except Exception as e:
             logger.exception(f"Error handling MCP request: {method}")
             return self._jsonrpc_error(request_id, -32603, str(e))
@@ -446,11 +463,13 @@ class MCPRampart:
         """Handle MCP tools/list request."""
         tools = []
         for tool in self._tools:
-            tools.append({
-                "name": tool.name,
-                "description": tool.description,
-                "inputSchema": tool.input_schema,
-            })
+            tools.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "inputSchema": tool.input_schema,
+                }
+            )
         return {"tools": tools}
 
     async def _handle_tools_call(self, params: dict) -> dict:
@@ -469,6 +488,7 @@ class MCPRampart:
         # Runtime guardrail (when enabled via rampart.enable_guardrails())
         if self._guardrail is not None:
             from mcp_rampart.runtime import format_blocked_response
+
             decision = self._guardrail.check(tool_name, arguments)
             if not decision.allowed:
                 return format_blocked_response(decision)
@@ -534,11 +554,19 @@ class MCPRampart:
     def exclude(self, path_pattern: str) -> "MCPRampart":
         """Exclude additional paths after initialization."""
         self.exclude_paths.append(path_pattern)
-        self._routes = [r for r in self._routes if not self._path_matches(r.path, [path_pattern])]
-        self._tools = [t for t in self._tools if not self._path_matches(t.route.path, [path_pattern])]
+        self._routes = [
+            r for r in self._routes if not self._path_matches(r.path, [path_pattern])
+        ]
+        self._tools = [
+            t
+            for t in self._tools
+            if not self._path_matches(t.route.path, [path_pattern])
+        ]
         return self
 
-    def tool(self, path: str, *, description: str | None = None, name: str | None = None) -> "MCPRampart":
+    def tool(
+        self, path: str, *, description: str | None = None, name: str | None = None
+    ) -> "MCPRampart":
         """Override tool metadata for a specific path."""
         for tool in self._tools:
             if tool.route.path == path:
@@ -590,6 +618,7 @@ class MCPRampart:
                 raise SystemExit(1)
         """
         from mcp_rampart.audit import Auditor
+
         return Auditor().audit(self)
 
     def enable_guardrails(
@@ -622,6 +651,7 @@ class MCPRampart:
             rampart.guardrail.recent(10)     # last 10 calls + decisions
         """
         from mcp_rampart.runtime import Guardrail
+
         self._guardrail = Guardrail(
             policy=policy,
             detect_injection=detect_injection,
@@ -631,7 +661,8 @@ class MCPRampart:
         )
         logger.info(
             "MCPRampart guardrails enabled (policy=%s, detect_injection=%s)",
-            policy, detect_injection,
+            policy,
+            detect_injection,
         )
         return self
 

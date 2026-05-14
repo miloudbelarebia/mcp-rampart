@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from mcp_rampart import (
     AuditReport,
-    Auditor,
-    Finding,
     IssueType,
     MCPRampart,
     Severity,
@@ -45,10 +42,12 @@ def test_risky_app_blocks_on_critical(risky_app):
 
 def test_audit_detects_exposed_auth():
     app = FastAPI()
+
     @app.post("/api/auth/login")
     async def login():
         """Login."""
         return {}
+
     rampart = MCPRampart(app, include_paths=["/*"], exclude_paths=[])
     report = rampart.audit()
     issues = {f.issue for f in report.findings}
@@ -57,10 +56,12 @@ def test_audit_detects_exposed_auth():
 
 def test_audit_detects_exposed_admin():
     app = FastAPI()
+
     @app.get("/api/admin/users")
     async def admin():
         """Admin."""
         return {}
+
     rampart = MCPRampart(app, include_paths=["/*"], exclude_paths=[])
     report = rampart.audit()
     assert any(f.issue == IssueType.EXPOSED_ADMIN for f in report.findings)
@@ -68,9 +69,11 @@ def test_audit_detects_exposed_admin():
 
 def test_audit_detects_missing_docstring():
     app = FastAPI()
+
     @app.get("/api/no_docs")
     async def no_docs():
         return {}
+
     rampart = MCPRampart(app)
     report = rampart.audit()
     assert any(f.issue == IssueType.MISSING_DOCSTRING for f in report.findings)
@@ -78,10 +81,12 @@ def test_audit_detects_missing_docstring():
 
 def test_audit_detects_sensitive_param_name():
     app = FastAPI()
+
     @app.post("/api/items")
     async def create(password: str):
         """Create."""
         return {}
+
     rampart = MCPRampart(app)
     report = rampart.audit()
     assert any(f.issue == IssueType.SENSITIVE_PARAM_NAME for f in report.findings)
@@ -99,6 +104,7 @@ def test_audit_detects_pii_in_response():
     async def listing():
         """Lists items."""
         return _Out(id=1, email="x@x", phone="0")
+
     rampart = MCPRampart(app)
     report = rampart.audit()
     pii = [f for f in report.findings if f.issue == IssueType.PII_IN_RESPONSE]
@@ -107,10 +113,12 @@ def test_audit_detects_pii_in_response():
 
 def test_audit_detects_destructive_method():
     app = FastAPI()
+
     @app.delete("/api/items/{i}")
     async def rm(i: int):
         """Remove."""
         return {}
+
     rampart = MCPRampart(app)
     report = rampart.audit()
     assert any(f.issue == IssueType.DESTRUCTIVE_METHOD for f in report.findings)
@@ -123,10 +131,12 @@ def test_audit_detects_destructive_method():
 
 def test_audit_detects_untyped_parameters():
     app = FastAPI()
+
     @app.get("/api/search")
     async def s(a, b, c, d):
         """Search."""
         return {}
+
     rampart = MCPRampart(app)
     report = rampart.audit()
     assert any(f.issue == IssueType.UNTYPED_PARAMETER for f in report.findings)
@@ -137,11 +147,14 @@ def test_audit_detects_untyped_parameters():
 
 def test_report_to_dict_is_json_serialisable():
     import json
+
     app = FastAPI()
+
     @app.post("/api/auth/login")
     async def login():
         """Login."""
         return {}
+
     report = MCPRampart(app, include_paths=["/*"], exclude_paths=[]).audit()
     d = report.to_dict()
     s = json.dumps(d)

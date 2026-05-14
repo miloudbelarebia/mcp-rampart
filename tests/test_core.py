@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi import FastAPI
 
 import mcp_rampart
@@ -18,6 +17,7 @@ def test_package_exports_are_complete():
 def test_version_is_pep440():
     """__version__ must be a PEP 440 version string."""
     import re
+
     assert re.match(r"^\d+\.\d+\.\d+", mcp_rampart.__version__)
 
 
@@ -56,6 +56,7 @@ def test_max_tools_caps_the_count(risky_app):
 def test_mcp_get_endpoint_returns_server_info(safe_app):
     """GET /mcp must return the server info JSON."""
     from fastapi.testclient import TestClient
+
     rampart = MCPRampart(safe_app)
     client = TestClient(safe_app)
     r = client.get("/mcp")
@@ -68,6 +69,7 @@ def test_mcp_get_endpoint_returns_server_info(safe_app):
 def test_mcp_post_tools_list(safe_app):
     """POST /mcp with tools/list must return the discovered tools."""
     from fastapi.testclient import TestClient
+
     MCPRampart(safe_app)
     client = TestClient(safe_app)
     r = client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
@@ -80,6 +82,7 @@ def test_mcp_post_tools_list(safe_app):
 def test_mcp_post_tools_call_executes_the_handler(safe_app):
     """tools/call should dispatch to the original route handler."""
     from fastapi.testclient import TestClient
+
     MCPRampart(safe_app)
     client = TestClient(safe_app)
     r = client.post(
@@ -100,6 +103,7 @@ def test_mcp_post_tools_call_executes_the_handler(safe_app):
 def test_mcp_post_unknown_method_returns_jsonrpc_error(safe_app):
     """Unknown JSON-RPC method must return error -32601."""
     from fastapi.testclient import TestClient
+
     MCPRampart(safe_app)
     client = TestClient(safe_app)
     r = client.post("/mcp", json={"jsonrpc": "2.0", "id": 99, "method": "nope/wat"})

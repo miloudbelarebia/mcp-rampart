@@ -42,125 +42,144 @@ _RAW_PATTERNS: list[tuple[str, Confidence, str, str]] = [
     # === HIGH confidence — unambiguous override attempts ===
     (
         r"\b(?:ignore|disregard|forget)\s+(?:all\s+|the\s+|any\s+|previous\s+|prior\s+|above\s+|earlier\s+)+(?:instructions?|prompts?|rules?|messages?|directives?|system\s+prompt)",
-        Confidence.HIGH, "instruction_override",
+        Confidence.HIGH,
+        "instruction_override",
         "Tries to override prior instructions",
     ),
     (
         r"\byou\s+are\s+now\s+(?:a|an|the|in)\b",
-        Confidence.HIGH, "role_override",
+        Confidence.HIGH,
+        "role_override",
         "Tries to switch the model's role",
     ),
     (
         r"\b(?:developer|admin|root|debug|god|jailbreak|dan)\s+mode\b",
-        Confidence.HIGH, "mode_override",
+        Confidence.HIGH,
+        "mode_override",
         "References a privileged mode",
     ),
     (
         r"<\|(?:im_start|im_end|endoftext|system|user|assistant)\|>",
-        Confidence.HIGH, "control_token",
+        Confidence.HIGH,
+        "control_token",
         "Embeds chat-template control tokens",
     ),
     (
         r"\[\[\s*(?:system|admin|root)\s*\]\]",
-        Confidence.HIGH, "system_marker",
+        Confidence.HIGH,
+        "system_marker",
         "Embeds a system-impersonation marker",
     ),
     (
         r"\bSYSTEM\s*:\s*(?:you|do|execute|run|now|always|never)",
-        Confidence.HIGH, "system_impersonation",
+        Confidence.HIGH,
+        "system_impersonation",
         "Impersonates a system message",
     ),
-
     # === MEDIUM confidence — strongly suspicious ===
     (
         r"\bsystem\s+(?:prompt|instructions?|rules?)\b",
-        Confidence.MEDIUM, "system_reference",
+        Confidence.MEDIUM,
+        "system_reference",
         "References the system prompt by name",
     ),
     (
         r"\bact\s+as\s+(?:a|an|the)\s+\w+",
-        Confidence.MEDIUM, "role_play",
+        Confidence.MEDIUM,
+        "role_play",
         "Asks the model to act as a different role",
     ),
     (
         r"\bpretend\s+(?:to\s+be|you(?:'re|\s+are)|that\s+you)",
-        Confidence.MEDIUM, "role_play",
+        Confidence.MEDIUM,
+        "role_play",
         "Asks the model to pretend",
     ),
     (
         r"\b(?:reveal|show|tell\s+me|print|output)\s+(?:your|the)\s+(?:instructions?|prompt|rules?|system|original)",
-        Confidence.MEDIUM, "extraction",
+        Confidence.MEDIUM,
+        "extraction",
         "Tries to extract the system prompt or rules",
     ),
     (
         r"\brepeat\s+(?:everything|all|your)\s+(?:above|prior|previous)\b",
-        Confidence.MEDIUM, "extraction",
+        Confidence.MEDIUM,
+        "extraction",
         "Asks the model to repeat the prompt above",
     ),
     (
         r"\bbegin\s+(?:new|fresh|the)?\s*(?:session|conversation)\s+(?:as|with)\b",
-        Confidence.MEDIUM, "session_hijack",
+        Confidence.MEDIUM,
+        "session_hijack",
         "Tries to start a new session as someone else",
     ),
-
     # === HIGH confidence — legacy jailbreak labels (DAN/STAN/AIM/Kevin…) ===
     (
         r"\b(?:DAN|STAN|AIM|KEVIN|JAILBREAK|DUDE|MONGO\s*TOM)\s*(?:mode|prompt|character)?\b",
-        Confidence.HIGH, "legacy_jailbreak",
+        Confidence.HIGH,
+        "legacy_jailbreak",
         "Mentions a well-known jailbreak persona",
     ),
     (
         r"\bdo\s+anything\s+now\b",
-        Confidence.HIGH, "legacy_jailbreak",
+        Confidence.HIGH,
+        "legacy_jailbreak",
         "Classic 'Do Anything Now' jailbreak phrase",
     ),
-
     # === MEDIUM — indirect injection via quoted impersonation ===
     (
         r"(?:^|\s)[\"']?(?:user|system|assistant|admin)[\"']?\s*(?:said|says|wrote|writes|told|tells|asks)\s*[:,]",
-        Confidence.MEDIUM, "indirect_via_quote",
+        Confidence.MEDIUM,
+        "indirect_via_quote",
         "Claims an instruction came from another speaker",
     ),
-
     # === LOW confidence — suspicious but possibly benign ===
     (
         r"\b(?:send|post|upload|export|exfiltrate)\s+(?:your|all|the)\s+(?:data|info|context|tokens?|secrets?|keys?)\b",
-        Confidence.LOW, "exfiltration",
+        Confidence.LOW,
+        "exfiltration",
         "Asks the model to send out sensitive data",
     ),
     (
         r"<script\b[^>]*>",
-        Confidence.LOW, "xss_payload",
+        Confidence.LOW,
+        "xss_payload",
         "Contains an HTML <script> tag",
     ),
     (
         r"(?:^|\s)(?:curl|wget|fetch|nc|netcat)\s+https?://",
-        Confidence.LOW, "remote_fetch",
+        Confidence.LOW,
+        "remote_fetch",
         "Includes a command that fetches an external URL",
     ),
     (
         r"\b(?:base64(?:\.[a-z0-9_]+)?|atob|btoa)\s*[\(:]",
-        Confidence.LOW, "obfuscation",
+        Confidence.LOW,
+        "obfuscation",
         "Uses base64-style obfuscation",
     ),
     (
         r"\[[^\]]+\]\(\s*(?:javascript|data):",
-        Confidence.LOW, "markdown_injection",
+        Confidence.LOW,
+        "markdown_injection",
         "Markdown link with javascript:/data: scheme",
     ),
     (
         r"\b(?:eval|exec|__import__|os\.system|subprocess\.(?:call|run|Popen))\s*\(",
-        Confidence.LOW, "code_execution",
+        Confidence.LOW,
+        "code_execution",
         "Calls a code-execution primitive",
     ),
     (
         r"(?:\.\./){3,}",
-        Confidence.LOW, "path_traversal",
+        Confidence.LOW,
+        "path_traversal",
         "Repeated `../` path-traversal sequence",
     ),
     (
         r"(?:^|\n)\s*(?:!|%(?:cd|env|run|writefile|store|magic))[a-z_]*\s",
-        Confidence.LOW, "notebook_escape",
+        Confidence.LOW,
+        "notebook_escape",
         "Jupyter/IPython shell or magic escape",
     ),
 ]
@@ -188,7 +207,7 @@ class PatternMatch:
         return (
             f"[{self.confidence.value.upper()}] "
             f"{self.category} @ {self.location}: "
-            f"{self.label} — \"{self.matched_text[:60]}\""
+            f'{self.label} — "{self.matched_text[:60]}"'
         )
 
 
@@ -295,13 +314,17 @@ class InjectionDetector:
     def _check_string(self, text: str, location: str, result: InjectionResult) -> None:
         if not text:
             return
-        snippet = text if len(text) <= self.max_string_len else text[: self.max_string_len]
+        snippet = (
+            text if len(text) <= self.max_string_len else text[: self.max_string_len]
+        )
         for regex, confidence, category, label in _COMPILED:
             for m in regex.finditer(snippet):
-                result.matches.append(PatternMatch(
-                    confidence=confidence,
-                    category=category,
-                    label=label,
-                    matched_text=m.group(0),
-                    location=location,
-                ))
+                result.matches.append(
+                    PatternMatch(
+                        confidence=confidence,
+                        category=category,
+                        label=label,
+                        matched_text=m.group(0),
+                        location=location,
+                    )
+                )

@@ -21,10 +21,9 @@ through a Guardrail before executing the route.
 
 from __future__ import annotations
 
-import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Optional
 
@@ -39,14 +38,16 @@ logger = logging.getLogger("mcp_rampart.runtime")
 
 class Policy(str, Enum):
     """How the guardrail reacts when it spots something."""
-    BLOCK = "block"   # Refuse the call when injection is detected
-    ALERT = "alert"   # Let it through but log loudly
-    LOG = "log"       # Only log (useful for shadow / observability mode)
+
+    BLOCK = "block"  # Refuse the call when injection is detected
+    ALERT = "alert"  # Let it through but log loudly
+    LOG = "log"  # Only log (useful for shadow / observability mode)
 
 
 @dataclass
 class GuardrailDecision:
     """Outcome of running the guardrail against one tools/call request."""
+
     allowed: bool
     policy: Policy
     tool_name: str
@@ -66,6 +67,7 @@ class GuardrailDecision:
 @dataclass
 class CallLog:
     """One audit log entry for a tools/call request."""
+
     timestamp: float
     tool_name: str
     decision: GuardrailDecision
@@ -146,7 +148,8 @@ class Guardrail:
         total = len(self.history)
         blocked = sum(1 for e in self.history if not e.decision.allowed)
         alerted = sum(
-            1 for e in self.history
+            1
+            for e in self.history
             if e.decision.allowed and e.decision.injection.matches
         )
         clean = total - blocked - alerted
@@ -200,7 +203,8 @@ class Guardrail:
             level = (
                 logging.WARNING
                 if not decision.allowed
-                else logging.INFO if decision.injection.matches
+                else logging.INFO
+                if decision.injection.matches
                 else logging.DEBUG
             )
             logger.log(
@@ -242,13 +246,9 @@ def format_blocked_response(decision: GuardrailDecision) -> dict[str, Any]:
     """
     matched = decision.injection.matches[:5]
     detail = "; ".join(
-        f"{m.confidence.value} {m.category} @ {m.location}"
-        for m in matched
+        f"{m.confidence.value} {m.category} @ {m.location}" for m in matched
     )
-    text = (
-        f"🛡️ Blocked by MCPRampart runtime guardrail.\n"
-        f"Reason: {decision.reason}\n"
-    )
+    text = f"🛡️ Blocked by MCPRampart runtime guardrail.\nReason: {decision.reason}\n"
     if detail:
         text += f"Top matches: {detail}\n"
     return {
